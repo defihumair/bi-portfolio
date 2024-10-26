@@ -63,6 +63,19 @@ pivot_summary.loc['Grand Total'] = pivot_summary.sum()
 st.write("Container Summary:")
 st.dataframe(pivot_summary)
 
+# Convert pivot summary to Excel format for download
+def convert_df_to_excel(df):
+    return df.to_excel(index=True)
+
+# Download button
+excel_file = convert_df_to_excel(pivot_summary)
+st.download_button(
+    label="Download Summary as Excel",
+    data=excel_file,
+    file_name='container_summary.xlsx',
+    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+)
+
 # Optionally, save the summary to a new Excel file
 # summary_file_path = 'E:/DashApp ContainerActivity/Summary.xlsx'
 # pivot_summary.to_excel(summary_file_path)
