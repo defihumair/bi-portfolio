@@ -6,11 +6,11 @@ import gdown
 def load_data():
     # Google Drive file URL
     url = 'https://drive.google.com/uc?id=1HXuCnyEBdUfxfOrxocMXJ5DHYG2z3dO2'
-    output = 'ContainerActivity.xlsx'  # Adjust the path as necessary
+    output = 'ContainerActivity.xlsx'  # Path to save the downloaded file
     # Download the file
     gdown.download(url, output, quiet=False)
     # Load the downloaded Excel file
-    return pd.read_excel(file_path, usecols=['Container #', 'POL Port', 'POL Agent', 'Size', 'Ageing Days', 'Activity Mode', 'Type'])
+    return pd.read_excel(output, usecols=['Container #', 'POL Port', 'POL Agent', 'Size', 'Ageing Days', 'Activity Mode', 'Type'])
 
 # Load the Excel data
 df = load_data()
