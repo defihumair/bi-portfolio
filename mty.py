@@ -10,7 +10,7 @@ sheet_name = 'Sheet1'  # Adjust if needed
 data = pd.read_excel(file_path, sheet_name=sheet_name)
 
 # Display the title of the app
-st.title("Container Summary")
+st.title("Container Summary By Humair")
 
 # Dropdown for Region Name
 region_options = data['Region Name'].unique()
@@ -65,10 +65,10 @@ st.write("Container Summary:")
 st.dataframe(pivot_summary)
 
 # Function to convert DataFrame to Excel for download
-def convert_df_to_excel(df):
+def convert_df_to_excel(df, include_index=False):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, sheet_name='Data', index=True)  # Keep index to show agent names
+        df.to_excel(writer, sheet_name='Data', index=include_index)  # Set index based on parameter
     output.seek(0)
     return output
 
@@ -81,8 +81,8 @@ st.download_button(
     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 )
 
-# Download button for the filtered data
-excel_filtered_file = convert_df_to_excel(filtered_data)
+# Download button for the filtered data (without index)
+excel_filtered_file = convert_df_to_excel(filtered_data, include_index=False)  # Exclude index for filtered data
 st.download_button(
     label="Download Filtered Data as Excel",
     data=excel_filtered_file,
