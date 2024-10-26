@@ -5,7 +5,7 @@ import openpyxl  # Add this import for openpyxl support
 @st.cache_data
 def load_data():
     # Load the Excel data from the specified file path
-    file_path = 'E:\\OSL\\ContainerActivity.xlsx'  # Adjust the path as necessary
+    file_path = 'ContainerActivity.xlsx'  # Adjust the path as necessary
     return pd.read_excel(file_path, usecols=['Container #', 'POL Port', 'POL Agent', 'Size', 'Ageing Days', 'Activity Mode', 'Type'])
 
 # Load the Excel data
