@@ -110,11 +110,20 @@ with tab2:
     pofd_port_options = data['POFD Port'].unique()
     selected_pofd_port = st.selectbox("Select POFD Port:", pofd_port_options)
 
+    # Dropdown for Company
+    company_options_on_the_way = data['Company'].unique().tolist()  # Get unique company names
+    company_options_on_the_way.insert(0, "ALL")  # Add "ALL" option at the top
+    selected_company_on_the_way = st.selectbox("Select Company:", company_options_on_the_way)
+
     # Filter data for "On The Way" summary
     on_the_way_data = data[data['Activity Mode'] == 'On The Way']
 
     # Further filter for the selected POFD Port
     filtered_on_the_way = on_the_way_data[on_the_way_data['POFD Port'] == selected_pofd_port]
+
+    # Additional filtering for Company selection
+    if selected_company_on_the_way != "ALL":  # If not selecting all companies
+        filtered_on_the_way = filtered_on_the_way[filtered_on_the_way['Company'] == selected_company_on_the_way]
 
     # Create the pivot table for "On The Way" summary by POFD Agent
     pofd_pivot_summary = pd.pivot_table(
