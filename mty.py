@@ -213,4 +213,14 @@ with tab3:
         label="Download Utilized Summary as Excel",
         data=excel_utilized_file,
         file_name='utilized_summary.xlsx',
-        mime='application/vnd.openxmlformats
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'  # Fixed missing closing quotation
+    )
+
+    # Download button for the filtered "Utilized" data
+    excel_filtered_utilized_file = convert_df_to_excel(filtered_utilized, include_index=False)
+    st.download_button(
+        label="Download Filtered Utilized Data as Excel",
+        data=excel_filtered_utilized_file,
+        file_name='filtered_utilized_data.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
