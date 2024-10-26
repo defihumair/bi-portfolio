@@ -16,7 +16,7 @@ st.title("Container Summary")
 tab_empty, tab_on_the_way = st.tabs(["Empty", "On The Way"])
 
 # Function to create the pivot table and summary for a specific activity mode
-def create_pivot_table(activity_mode):
+def create_empty_pivot_table(activity_mode):
     # Dropdown for Region Name
     region_options = data['Region Name'].unique()
     selected_region = st.selectbox("Select Region Name:", region_options, key=f"region_{activity_mode}")
@@ -29,10 +29,6 @@ def create_pivot_table(activity_mode):
     company_options = data['Company'].unique().tolist()  # Get unique company names
     company_options.insert(0, "ALL")  # Add "ALL" option at the top
     selected_company = st.selectbox("Select Company:", company_options, key=f"company_{activity_mode}")
-
-    # Dropdown for POFD Agent
-    pofd_agent_options = data[data['POL Port'] == selected_pol]['POFD Agent'].unique()
-    selected_agent = st.selectbox("Select POFD Agent:", pofd_agent_options, key=f"pofd_agent_{activity_mode}")
 
     # Filter data based on selections
     filtered_data = data[
@@ -49,7 +45,7 @@ def create_pivot_table(activity_mode):
     pivot_summary = pd.pivot_table(
         filtered_data,
         values='Container #',
-        index='POFD Agent',  # Use POFD Agent as the index
+        index='POL Agent',  # Use POL Agent as the index
         columns='Size',
         aggfunc='count',
         fill_value=0
@@ -91,10 +87,36 @@ def create_pivot_table(activity_mode):
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-# Create the "Empty" tab
-with tab_empty:
-    create_pivot_table('Empty')
+def create_on_the_way_pivot_table():
+    # Dropdown for POFD Port
+    pofd_port_options = data['POFD Port'].unique()
+    selected_pofd_port = st.selectbox("Select POFD Port:", pofd_port_options, key="pofd_port")
 
-# Create the "On The Way" tab
-with tab_on_the_way:
-    create_pivot_table('On The Way')
+    # Filter data based on POFD Port
+    filtered_data = data[data['POFD Port'] == selected_pofd_port]
+
+    # Create the pivot table for On The Way
+    pivot_summary = pd.pivot_table(
+        filtered_data,
+        values='Container #',
+        index='POFD Agent',  # Use POFD Agent as the index
+        columns='Size',
+        aggfunc='count',
+        fill_value=0
+    )
+
+    # Add columns for total counts of 20' and 40' containers
+    pivot_summary['Grand Total'] = pivot_summary.sum(axis=1)
+
+    # Add total row
+    pivot_summary.loc['Grand Total'] = pivot_summary.sum()
+
+    # Display the pivot summary in the app
+    st.write("Container Summary for On The Way:")
+    st.dataframe(pivot_summary)
+
+    # Function to convert DataFrame to Excel for download
+    def convert_df_to_excel(df, include_index=True):  # Include index by default
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(write
