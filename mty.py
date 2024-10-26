@@ -72,11 +72,28 @@ def convert_df_to_excel(df):
     output.seek(0)
     return output
 
-# Download button
-excel_file = convert_df_to_excel(pivot_summary)
+# Download button for the summary
+excel_summary_file = convert_df_to_excel(pivot_summary)
 st.download_button(
     label="Download Summary as Excel",
-    data=excel_file,
+    data=excel_summary_file,
     file_name='container_summary.xlsx',
+    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+)
+
+# Convert filtered data to Excel format for download
+def convert_filtered_data_to_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Filtered Data', index=False)
+    output.seek(0)
+    return output
+
+# Download button for the filtered data
+excel_filtered_file = convert_filtered_data_to_excel(filtered_data)
+st.download_button(
+    label="Download Filtered Data as Excel",
+    data=excel_filtered_file,
+    file_name='filtered_data.xlsx',
     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 )
