@@ -200,3 +200,26 @@ with tab3:
     utilized_pivot_summary['Grand Total'] = utilized_pivot_summary.sum(axis=1)
 
     # Add total row
+    utilized_pivot_summary.loc['Grand Total'] = utilized_pivot_summary.sum()
+
+    # Display the pivot summary for Utilized in the app
+    st.write("Utilized Container Summary:")
+    st.dataframe(utilized_pivot_summary)
+
+    # Download button for the Utilized summary
+    excel_utilized_file = convert_df_to_excel(utilized_pivot_summary, include_index=True)
+    st.download_button(
+        label="Download Utilized Summary as Excel",
+        data=excel_utilized_file,
+        file_name='utilized_summary.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+    # Download button for the filtered Utilized data
+    excel_filtered_utilized_file = convert_df_to_excel(filtered_utilized, include_index=False)
+    st.download_button(
+        label="Download Filtered Utilized Data as Excel",
+        data=excel_filtered_utilized_file,
+        file_name='filtered_utilized_data.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
