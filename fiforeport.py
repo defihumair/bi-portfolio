@@ -4,13 +4,26 @@ import gdown
 
 @st.cache_data
 def load_data():
+<<<<<<< HEAD
+    # Load the Excel data from the specified file path
+<<<<<<< HEAD
+    file_path = 'ContainerActivity.xlsx'  # Adjust the path as necessary
+=======
+    file_path = 'ContainerActivity.xlsx'  # Adjust the path as necessary
+>>>>>>> be2f94ddef9d027aeea34a86bec13014112e1e6d
+=======
     # Google Drive file URL
     url = 'https://drive.google.com/uc?id=1HXuCnyEBdUfxfOrxocMXJ5DHYG2z3dO2'
     output = 'ContainerActivity.xlsx'  # Path to save the downloaded file
     # Download the file
     gdown.download(url, output, quiet=False)
     # Load the downloaded Excel file
+<<<<<<< HEAD
+>>>>>>> 05cd91d8a2c22cc5114d81ffb7a2dd3cd1a58d0a
+    return pd.read_excel(file_path, usecols=['Container #', 'POL Port', 'POL Agent', 'Size', 'Ageing Days', 'Activity Mode', 'Type'])
+=======
     return pd.read_excel(output, usecols=['Container #', 'POL Port', 'POL Agent', 'Size', 'Ageing Days', 'Activity Mode', 'Type'])
+>>>>>>> origin/master
 
 # Load the Excel data
 df = load_data()
