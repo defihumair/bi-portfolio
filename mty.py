@@ -21,7 +21,7 @@ with tab1:
     region_options_myt = data['Region Name'].unique()
     selected_region_myt = st.selectbox("Select Region Name:", region_options_myt, key='myt_region')
 
-    # Dropdown for POL Port
+    # Dropdown for POL Port based on selected Region
     pol_options_myt = data[data['Region Name'] == selected_region_myt]['POL Port'].unique()
     selected_pol_myt = st.selectbox("Select POL Port:", pol_options_myt, key='myt_pol')
 
@@ -142,7 +142,7 @@ with tab3:
     region_options_utilized = data['Region Name'].unique()
     selected_region_utilized = st.selectbox("Select Region Name:", region_options_utilized, key='utilized_region')
 
-    # Dropdown for POL Port
+    # Dropdown for POL Port based on selected Region
     pol_options_utilized = data[data['Region Name'] == selected_region_utilized]['POL Port'].unique()
     selected_pol_utilized = st.selectbox("Select POL Port:", pol_options_utilized, key='utilized_pol')
 
@@ -151,21 +151,16 @@ with tab3:
     company_options_utilized.insert(0, "ALL")
     selected_company_utilized = st.selectbox("Select Company:", company_options_utilized, key='utilized_company')
 
-    # Dropdown for Activity (multiple selection)
-    activity_options_utilized = ['DISCHARGE FULL', 'SENT TO CONSIGNEE']
-    selected_activity_utilized = st.multiselect("Select Activity:", activity_options_utilized, default=activity_options_utilized, key='utilized_activity')
+    # Filter data for Utilized summary (for specific Activities)
+    utilized_data = data[data['Activity'].isin(['DISCHARGE FULL', 'SENT TO CONSIGNEE'])]
 
-    # Filter data for "Utilized" summary
-    utilized_data = data[data['Activity Mode'] == 'Utilized']
-
-    # Further filter based on selected POL Port, Company, and Activities
+    # Further filter based on selected POL Port and Company
     filtered_utilized = utilized_data[
         (utilized_data['POL Port'] == selected_pol_utilized) &
-        (utilized_data['Company'].isin(company_options_utilized if selected_company_utilized == "ALL" else [selected_company_utilized])) &
-        (utilized_data['Activity'].isin(selected_activity_utilized))
+        (utilized_data['Company'].isin(company_options_utilized if selected_company_utilized == "ALL" else [selected_company_utilized]))
     ]
 
-    # Create the pivot table for "Utilized" summary by POL Agent
+    # Create the pivot table for Utilized summary by POL Agent
     utilized_pivot_summary = pd.pivot_table(
         filtered_utilized,
         values='Container #',
@@ -181,11 +176,11 @@ with tab3:
     # Add total row
     utilized_pivot_summary.loc['Grand Total'] = utilized_pivot_summary.sum()
 
-    # Display the pivot summary for "Utilized" in the app
+    # Display the pivot summary for Utilized in the app
     st.write("Utilized Container Summary:")
     st.dataframe(utilized_pivot_summary)
 
-    # Download button for the "Utilized" summary
+    # Download button for the Utilized summary
     excel_utilized_file = convert_df_to_excel(utilized_pivot_summary, include_index=True)
     st.download_button(
         label="Download Utilized Summary as Excel",
@@ -194,7 +189,7 @@ with tab3:
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-    # Download button for the filtered "Utilized" data
+    # Download button for the filtered Utilized data
     excel_filtered_utilized_file = convert_df_to_excel(filtered_utilized, include_index=False)
     st.download_button(
         label="Download Filtered Utilized Data as Excel",
