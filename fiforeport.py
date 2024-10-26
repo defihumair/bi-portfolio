@@ -1,10 +1,15 @@
 import streamlit as st
 import pandas as pd
+import gdown
 
 @st.cache_data
 def load_data():
-    # Load the Excel data from the specified file path
-    file_path = 'ContainerActivity.xlsx'  # Adjust the path as necessary
+    # Google Drive file URL
+    url = 'https://drive.google.com/uc?id=1HXuCnyEBdUfxfOrxocMXJ5DHYG2z3dO2'
+    output = 'ContainerActivity.xlsx'  # Adjust the path as necessary
+    # Download the file
+    gdown.download(url, output, quiet=False)
+    # Load the downloaded Excel file
     return pd.read_excel(file_path, usecols=['Container #', 'POL Port', 'POL Agent', 'Size', 'Ageing Days', 'Activity Mode', 'Type'])
 
 # Load the Excel data
