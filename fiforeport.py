@@ -1,29 +1,11 @@
 import streamlit as st
 import pandas as pd
-import gdown
 
 @st.cache_data
 def load_data():
-<<<<<<< HEAD
     # Load the Excel data from the specified file path
-<<<<<<< HEAD
     file_path = 'ContainerActivity.xlsx'  # Adjust the path as necessary
-=======
-    file_path = 'ContainerActivity.xlsx'  # Adjust the path as necessary
->>>>>>> be2f94ddef9d027aeea34a86bec13014112e1e6d
-=======
-    # Google Drive file URL
-    url = 'https://drive.google.com/uc?id=1HXuCnyEBdUfxfOrxocMXJ5DHYG2z3dO2'
-    output = 'ContainerActivity.xlsx'  # Path to save the downloaded file
-    # Download the file
-    gdown.download(url, output, quiet=False)
-    # Load the downloaded Excel file
-<<<<<<< HEAD
->>>>>>> 05cd91d8a2c22cc5114d81ffb7a2dd3cd1a58d0a
     return pd.read_excel(file_path, usecols=['Container #', 'POL Port', 'POL Agent', 'Size', 'Ageing Days', 'Activity Mode', 'Type'])
-=======
-    return pd.read_excel(output, usecols=['Container #', 'POL Port', 'POL Agent', 'Size', 'Ageing Days', 'Activity Mode', 'Type'])
->>>>>>> origin/master
 
 # Load the Excel data
 df = load_data()
@@ -42,9 +24,6 @@ input_quantity = st.number_input('Enter Quantity:', min_value=1)
 
 # Dropdown menu for container type selection
 selected_container_type = st.selectbox('Select Container Type:', [''] + list(container_types.keys()))
-
-# Initialize the agents_summary list
-agents_summary = []
 
 # Filter data based on input
 if selected_container_type:
@@ -71,7 +50,7 @@ else:
     # Group the data by POL Agent
     grouped_data = filtered_data.groupby('POL Agent').agg({
         'Container #': 'count',  # Count of containers available
-        'Ageing Days': 'mean'     # Calculate average ageing days
+        'Ageing Days': 'mean'     # Calculate average ageing days (not used directly in logic)
     }).reset_index()
 
     # Filter agents that can fulfill the requested quantity
@@ -104,43 +83,41 @@ else:
     else:
         # If no single agent can fulfill the request, we need to use multiple agents
         cumulative_containers = 0
-        
-        # Sort agents by container count in descending order
+        selected_agents = []
+        agents_summary = []
+
+        # Sort agents by container count, then by average ageing days
         sorted_agents = grouped_data.sort_values(by=['Container #'], ascending=False)
 
         for index, row in sorted_agents.iterrows():
             if cumulative_containers < input_quantity:
                 cumulative_containers += row['Container #']
+                selected_agents.append(row)
                 agent_name = row['POL Agent']
+                agent_containers = row['Container #']
+                agent_ageing = filtered_data[filtered_data['POL Agent'] == agent_name]['Ageing Days'].mean()
                 agents_summary.append({
                     "Agent Name": agent_name,
-                    "Available Containers": row['Container #'],
-                    "Average Aging": filtered_data[filtered_data['POL Agent'] == agent_name]['Ageing Days'].mean()
+                    "Available Containers": agent_containers,
+                    "Average Aging": agent_ageing
                 })
 
         if cumulative_containers >= input_quantity:
             st.write("The following agents can collectively fulfill the request:")
             for agent_detail in agents_summary:
+                # Only display agent name and average aging
                 st.write(f"{agent_detail['Agent Name']} - Average Aging: {agent_detail['Average Aging']:.2f} Days")
-
-            # Prepare detailed report for download
-            report_data = []
-            for agent in agents_summary:
-                # Get all containers for this agent
-                agent_data = filtered_data[filtered_data['POL Agent'] == agent['Agent Name']]
-                for _, row in agent_data.iterrows():
-                    report_data.append(row)
-
-            # Create DataFrame for the report
-            report_df = pd.DataFrame(report_data)
-
-            # Generate the CSV file and provide download button
-            if not report_df.empty:
-                st.download_button(
-                    label="Download Report as CSV",
-                    data=report_df.to_csv(index=False).encode('utf-8'),
-                    file_name='agent_report.csv',
-                    mime='text/csv',
-                )
         else:
             st.write("No agent has sufficient containers to fulfill the request.")
+
+    # Prepare the report dataframe for download
+    report_df = pd.DataFrame(agents_summary)
+
+    # Generate the CSV file and provide download button
+    if not report_df.empty:
+        st.download_button(
+            label="Download Report as CSV",
+            data=report_df.to_csv(index=False).encode('utf-8'),
+            file_name='agent_report.csv',
+            mime='text/csv',
+        )
