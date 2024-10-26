@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+from io import BytesIO
 
 # Load your Excel data
 file_path = 'ContainerActivity.xlsx'
@@ -65,7 +66,11 @@ st.dataframe(pivot_summary)
 
 # Convert pivot summary to Excel format for download
 def convert_df_to_excel(df):
-    return df.to_excel(index=True)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Summary')
+    output.seek(0)
+    return output
 
 # Download button
 excel_file = convert_df_to_excel(pivot_summary)
@@ -75,8 +80,3 @@ st.download_button(
     file_name='container_summary.xlsx',
     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 )
-
-# Optionally, save the summary to a new Excel file
-# summary_file_path = 'E:/DashApp ContainerActivity/Summary.xlsx'
-# pivot_summary.to_excel(summary_file_path)
-# st.success(f"Summary saved to {summary_file_path}")
