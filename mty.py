@@ -27,26 +27,23 @@ selected_activity = st.selectbox("Select Activity Mode:", activity_options)
 type_options = ['Dry', 'Special']
 selected_type = st.selectbox("Select Type:", type_options)
 
-# Define categories for the Type selection
+# Define size categories based on the selected type
 if selected_type == 'Dry':
-    size_options = ['Heavy Duty', 'Hi-Cube']
+    size_categories = ['Heavy Duty', 'Hi-Cube']
 elif selected_type == 'Special':
-    size_options = ['Flat Rack', 'Open Top', 'Reefer', 'Standard']
+    size_categories = ['Flat Rack', 'Open Top', 'Reefer', 'Standard']
 else:
-    size_options = []
-
-# Dropdown for Size
-selected_size = st.selectbox("Select Size:", size_options)
+    size_categories = []
 
 # Filter data based on selections
 filtered_data = data[
     (data['Region Name'] == selected_region) &
     (data['POL Port'] == selected_pol) &
     (data['Activity Mode'] == selected_activity) &
-    (data['Type'] == selected_size)
+    (data['Type'].isin(size_categories))
 ]
 
-# Pivot table to summarize counts of Container # by POL Agent and Size
+# Include only 20' and 40' in the pivot table
 pivot_summary = pd.pivot_table(
     filtered_data,
     values='Container #',
@@ -56,15 +53,17 @@ pivot_summary = pd.pivot_table(
     fill_value=0
 )
 
-# Adding Grand Total columns and rows
-pivot_summary.loc['Grand Total'] = pivot_summary.sum()
+# Add columns for total counts of 20' and 40' containers
 pivot_summary['Grand Total'] = pivot_summary.sum(axis=1)
+
+# Add total row
+pivot_summary.loc['Grand Total'] = pivot_summary.sum()
 
 # Display the pivot summary in the app
 st.write("Container Summary:")
 st.dataframe(pivot_summary)
 
-# Save the summary to a new Excel file if needed (optional)
+# Optionally, save the summary to a new Excel file
 # summary_file_path = 'E:/DashApp ContainerActivity/Summary.xlsx'
 # pivot_summary.to_excel(summary_file_path)
 # st.success(f"Summary saved to {summary_file_path}")
