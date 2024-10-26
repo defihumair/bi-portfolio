@@ -74,15 +74,15 @@ st.write("Container Summary:")
 st.dataframe(pivot_summary)
 
 # Function to convert DataFrame to Excel for download
-def convert_df_to_excel(df, include_index=False):
+def convert_df_to_excel(df, include_index=True):  # Include index by default
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, sheet_name='Data', index=include_index)  # Set index based on parameter
     output.seek(0)
     return output
 
-# Download button for the summary
-excel_summary_file = convert_df_to_excel(pivot_summary)
+# Download button for the summary (including POL Agent names)
+excel_summary_file = convert_df_to_excel(pivot_summary, include_index=True)  # Ensure index is included
 st.download_button(
     label="Download Summary as Excel",
     data=excel_summary_file,
