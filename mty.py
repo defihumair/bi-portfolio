@@ -3,7 +3,7 @@ import streamlit as st
 from io import BytesIO
 
 # Load your Excel data
-file_path = 'ContainerActivity.xlsx'
+file_path = 'E:/DashApp ContainerActivity/ContainerActivity.xlsx'
 sheet_name = 'Sheet1'  # Adjust if needed
 
 # Read the Excel file
@@ -19,20 +19,20 @@ tab_empty, tab_on_the_way = st.tabs(["Empty", "On The Way"])
 def create_pivot_table(activity_mode):
     # Dropdown for Region Name
     region_options = data['Region Name'].unique()
-    selected_region = st.selectbox("Select Region Name:", region_options)
+    selected_region = st.selectbox("Select Region Name:", region_options, key=f"region_{activity_mode}")
 
     # Dropdown for POL Port
     pol_options = data[data['Region Name'] == selected_region]['POL Port'].unique()
-    selected_pol = st.selectbox("Select POL Port:", pol_options)
+    selected_pol = st.selectbox("Select POL Port:", pol_options, key=f"pol_{activity_mode}")
 
     # Dropdown for Company
     company_options = data['Company'].unique().tolist()  # Get unique company names
     company_options.insert(0, "ALL")  # Add "ALL" option at the top
-    selected_company = st.selectbox("Select Company:", company_options)
+    selected_company = st.selectbox("Select Company:", company_options, key=f"company_{activity_mode}")
 
     # Dropdown for POFD Agent
     pofd_agent_options = data[data['POL Port'] == selected_pol]['POFD Agent'].unique()
-    selected_agent = st.selectbox("Select POFD Agent:", pofd_agent_options)
+    selected_agent = st.selectbox("Select POFD Agent:", pofd_agent_options, key=f"pofd_agent_{activity_mode}")
 
     # Filter data based on selections
     filtered_data = data[
