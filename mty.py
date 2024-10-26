@@ -10,7 +10,7 @@ sheet_name = 'Sheet1'  # Adjust if needed
 data = pd.read_excel(file_path, sheet_name=sheet_name)
 
 # Display the title of the app
-st.title("Container Summary By Humair")
+st.title("Container Summary")
 
 # Dropdown for Region Name
 region_options = data['Region Name'].unique()
@@ -48,7 +48,7 @@ filtered_data = data[
 pivot_summary = pd.pivot_table(
     filtered_data,
     values='Container #',
-    index='POL Agent',
+    index='POL Agent',  # Keep this to show agent names
     columns='Size',
     aggfunc='count',
     fill_value=0
@@ -68,7 +68,7 @@ st.dataframe(pivot_summary)
 def convert_df_to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, sheet_name='Data', index=False)  # Include index if you want it
+        df.to_excel(writer, sheet_name='Data', index=True)  # Keep index to show agent names
     output.seek(0)
     return output
 
