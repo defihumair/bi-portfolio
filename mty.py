@@ -64,11 +64,11 @@ pivot_summary.loc['Grand Total'] = pivot_summary.sum()
 st.write("Container Summary:")
 st.dataframe(pivot_summary)
 
-# Convert pivot summary to Excel format for download
+# Function to convert DataFrame to Excel for download
 def convert_df_to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, sheet_name='Summary')
+        df.to_excel(writer, sheet_name='Data', index=False)  # Include index if you want it
     output.seek(0)
     return output
 
@@ -81,16 +81,8 @@ st.download_button(
     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 )
 
-# Convert filtered data to Excel format for download
-def convert_filtered_data_to_excel(df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, sheet_name='Filtered Data', index=False)
-    output.seek(0)
-    return output
-
 # Download button for the filtered data
-excel_filtered_file = convert_filtered_data_to_excel(filtered_data)
+excel_filtered_file = convert_df_to_excel(filtered_data)
 st.download_button(
     label="Download Filtered Data as Excel",
     data=excel_filtered_file,
