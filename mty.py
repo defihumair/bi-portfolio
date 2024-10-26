@@ -18,49 +18,33 @@ tab1, tab2, tab3 = st.tabs(["MYT Containers", "On The Way", "Utilized"])
 # =================== Tab 1: MYT Containers ===================
 with tab1:
     # Dropdown for Region Name
-    region_options = data['Region Name'].unique()
-    selected_region = st.selectbox("Select Region Name:", region_options, key='myt_region')
+    region_options_myt = data['Region Name'].unique()
+    selected_region_myt = st.selectbox("Select Region Name:", region_options_myt, key='myt_region')
 
     # Dropdown for POL Port
-    pol_options = data[data['Region Name'] == selected_region]['POL Port'].unique()
-    selected_pol = st.selectbox("Select POL Port:", pol_options, key='myt_pol')
+    pol_options_myt = data[data['Region Name'] == selected_region_myt]['POL Port'].unique()
+    selected_pol_myt = st.selectbox("Select POL Port:", pol_options_myt, key='myt_pol')
 
-    # Dropdown for Activity Mode
-    activity_options = ['Empty', 'On The Way', 'Utilized']
-    selected_activity = st.selectbox("Select Activity Mode:", activity_options, key='myt_activity')
+    # Dropdown for Activity Mode (multiple selection)
+    activity_options_myt = ['Empty', 'On The Way', 'Utilized']
+    selected_activity_myt = st.multiselect("Select Activity Mode:", activity_options_myt, default=['Empty'], key='myt_activity')
 
     # Dropdown for Company
-    company_options = data['Company'].unique().tolist()
-    company_options.insert(0, "ALL")
-    selected_company = st.selectbox("Select Company:", company_options, key='myt_company')
+    company_options_myt = data['Company'].unique().tolist()
+    company_options_myt.insert(0, "ALL")
+    selected_company_myt = st.selectbox("Select Company:", company_options_myt, key='myt_company')
 
-    # Dropdown for Type
-    type_options = ['Dry', 'Special']
-    selected_type = st.selectbox("Select Type:", type_options, key='myt_type')
-
-    # Define size categories based on the selected type
-    if selected_type == 'Dry':
-        size_categories = ['Heavy Duty', 'Hi-Cube']
-    elif selected_type == 'Special':
-        size_categories = ['Flat Rack', 'Open Top', 'Reefer', 'Standard']
-    else:
-        size_categories = []
-
-    # Filter data based on selections
-    filtered_data = data[
-        (data['Region Name'] == selected_region) &
-        (data['POL Port'] == selected_pol) &
-        (data['Activity Mode'] == selected_activity) &
-        (data['Type'].isin(size_categories))
+    # Filter data for "MYT Containers" summary
+    myt_data = data[
+        (data['Region Name'] == selected_region_myt) &
+        (data['POL Port'] == selected_pol_myt) &
+        (data['Activity Mode'].isin(selected_activity_myt)) &  # Filter by selected activities
+        (data['Company'].isin(company_options_myt if selected_company_myt == "ALL" else [selected_company_myt]))
     ]
 
-    # Additional filtering for Company selection
-    if selected_company != "ALL":
-        filtered_data = filtered_data[filtered_data['Company'] == selected_company]
-
-    # Include only 20' and 40' in the pivot table
-    pivot_summary = pd.pivot_table(
-        filtered_data,
+    # Create the pivot table for "MYT Containers" summary by POL Agent
+    myt_pivot_summary = pd.pivot_table(
+        myt_data,
         values='Container #',
         index='POL Agent',
         columns='Size',
@@ -69,38 +53,30 @@ with tab1:
     )
 
     # Add columns for total counts of 20' and 40' containers
-    pivot_summary['Grand Total'] = pivot_summary.sum(axis=1)
+    myt_pivot_summary['Grand Total'] = myt_pivot_summary.sum(axis=1)
 
     # Add total row
-    pivot_summary.loc['Grand Total'] = pivot_summary.sum()
+    myt_pivot_summary.loc['Grand Total'] = myt_pivot_summary.sum()
 
-    # Display the pivot summary in the app
-    st.write("Container Summary:")
-    st.dataframe(pivot_summary)
+    # Display the pivot summary for "MYT Containers" in the app
+    st.write("MYT Container Summary:")
+    st.dataframe(myt_pivot_summary)
 
-    # Function to convert DataFrame to Excel for download
-    def convert_df_to_excel(df, include_index=True):
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, sheet_name='Data', index=include_index)
-        output.seek(0)
-        return output
-
-    # Download button for the summary (including POL Agent names)
-    excel_summary_file = convert_df_to_excel(pivot_summary, include_index=True)
+    # Download button for the "MYT Containers" summary
+    excel_myt_file = convert_df_to_excel(myt_pivot_summary, include_index=True)
     st.download_button(
-        label="Download Summary as Excel",
-        data=excel_summary_file,
-        file_name='container_summary.xlsx',
+        label="Download MYT Summary as Excel",
+        data=excel_myt_file,
+        file_name='myt_summary.xlsx',
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-    # Download button for the filtered data (without index)
-    excel_filtered_file = convert_df_to_excel(filtered_data, include_index=False)
+    # Download button for the filtered "MYT Containers" data
+    excel_filtered_myt_file = convert_df_to_excel(myt_data, include_index=False)
     st.download_button(
-        label="Download Filtered Data as Excel",
-        data=excel_filtered_file,
-        file_name='filtered_data.xlsx',
+        label="Download Filtered MYT Data as Excel",
+        data=excel_filtered_myt_file,
+        file_name='filtered_myt_data.xlsx',
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
@@ -178,13 +154,18 @@ with tab3:
     company_options_utilized.insert(0, "ALL")
     selected_company_utilized = st.selectbox("Select Company:", company_options_utilized, key='utilized_company')
 
+    # Dropdown for Activity (multiple selection)
+    activity_options_utilized = ['DISCHARGE FULL', 'SENT TO CONSIGNEE']
+    selected_activity_utilized = st.multiselect("Select Activity:", activity_options_utilized, default=activity_options_utilized, key='utilized_activity')
+
     # Filter data for "Utilized" summary
     utilized_data = data[data['Activity Mode'] == 'Utilized']
 
-    # Further filter based on selected POL Port and Company
+    # Further filter based on selected POL Port, Company, and Activities
     filtered_utilized = utilized_data[
         (utilized_data['POL Port'] == selected_pol_utilized) &
-        (utilized_data['Company'].isin(company_options_utilized if selected_company_utilized == "ALL" else [selected_company_utilized]))
+        (utilized_data['Company'].isin(company_options_utilized if selected_company_utilized == "ALL" else [selected_company_utilized])) &
+        (utilized_data['Activity'].isin(selected_activity_utilized))
     ]
 
     # Create the pivot table for "Utilized" summary by POL Agent
@@ -213,7 +194,7 @@ with tab3:
         label="Download Utilized Summary as Excel",
         data=excel_utilized_file,
         file_name='utilized_summary.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'  # Fixed missing closing quotation
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
     # Download button for the filtered "Utilized" data
