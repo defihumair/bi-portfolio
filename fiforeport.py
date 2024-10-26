@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import openpyxl  # Add this import for openpyxl support
 
 @st.cache_data
 def load_data():
