@@ -13,7 +13,7 @@ data = pd.read_excel(file_path, sheet_name=sheet_name)
 st.title("Container Summary")
 
 # Tab structure for different summaries
-tab1, tab2 = st.tabs(["MYT Containers", "On The Way"])
+tab1, tab2, tab3 = st.tabs(["MYT Containers", "On The Way", "Utilized"])
 
 # =================== Tab 1: MYT Containers ===================
 with tab1:
@@ -30,8 +30,8 @@ with tab1:
     selected_activity = st.selectbox("Select Activity Mode:", activity_options, key='myt_activity')
 
     # Dropdown for Company
-    company_options = data['Company'].unique().tolist()  # Get unique company names
-    company_options.insert(0, "ALL")  # Add "ALL" option at the top
+    company_options = data['Company'].unique().tolist()
+    company_options.insert(0, "ALL")
     selected_company = st.selectbox("Select Company:", company_options, key='myt_company')
 
     # Dropdown for Type
@@ -55,14 +55,14 @@ with tab1:
     ]
 
     # Additional filtering for Company selection
-    if selected_company != "ALL":  # If not selecting all companies
+    if selected_company != "ALL":
         filtered_data = filtered_data[filtered_data['Company'] == selected_company]
 
     # Include only 20' and 40' in the pivot table
     pivot_summary = pd.pivot_table(
         filtered_data,
         values='Container #',
-        index='POL Agent',  # Keep this to show agent names
+        index='POL Agent',
         columns='Size',
         aggfunc='count',
         fill_value=0
@@ -79,15 +79,15 @@ with tab1:
     st.dataframe(pivot_summary)
 
     # Function to convert DataFrame to Excel for download
-    def convert_df_to_excel(df, include_index=True):  # Include index by default
+    def convert_df_to_excel(df, include_index=True):
         output = BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, sheet_name='Data', index=include_index)  # Set index based on parameter
+            df.to_excel(writer, sheet_name='Data', index=include_index)
         output.seek(0)
         return output
 
     # Download button for the summary (including POL Agent names)
-    excel_summary_file = convert_df_to_excel(pivot_summary, include_index=True)  # Ensure index is included
+    excel_summary_file = convert_df_to_excel(pivot_summary, include_index=True)
     st.download_button(
         label="Download Summary as Excel",
         data=excel_summary_file,
@@ -96,7 +96,7 @@ with tab1:
     )
 
     # Download button for the filtered data (without index)
-    excel_filtered_file = convert_df_to_excel(filtered_data, include_index=False)  # Exclude index for filtered data
+    excel_filtered_file = convert_df_to_excel(filtered_data, include_index=False)
     st.download_button(
         label="Download Filtered Data as Excel",
         data=excel_filtered_file,
@@ -111,8 +111,8 @@ with tab2:
     selected_pofd_port = st.selectbox("Select POFD Port:", pofd_port_options, key='on_the_way_pofd')
 
     # Dropdown for Company
-    company_options_on_the_way = data['Company'].unique().tolist()  # Get unique company names
-    company_options_on_the_way.insert(0, "ALL")  # Add "ALL" option at the top
+    company_options_on_the_way = data['Company'].unique().tolist()
+    company_options_on_the_way.insert(0, "ALL")
     selected_company_on_the_way = st.selectbox("Select Company:", company_options_on_the_way, key='on_the_way_company')
 
     # Filter data for "On The Way" summary
@@ -122,14 +122,14 @@ with tab2:
     filtered_on_the_way = on_the_way_data[on_the_way_data['POFD Port'] == selected_pofd_port]
 
     # Additional filtering for Company selection
-    if selected_company_on_the_way != "ALL":  # If not selecting all companies
+    if selected_company_on_the_way != "ALL":
         filtered_on_the_way = filtered_on_the_way[filtered_on_the_way['Company'] == selected_company_on_the_way]
 
     # Create the pivot table for "On The Way" summary by POFD Agent
     pofd_pivot_summary = pd.pivot_table(
         filtered_on_the_way,
         values='Container #',
-        index='POFD Agent',  # Index by POFD Agent
+        index='POFD Agent',
         columns='Size',
         aggfunc='count',
         fill_value=0
@@ -146,7 +146,7 @@ with tab2:
     st.dataframe(pofd_pivot_summary)
 
     # Download button for the "On The Way" summary
-    excel_on_the_way_file = convert_df_to_excel(pofd_pivot_summary, include_index=True)  # Include index
+    excel_on_the_way_file = convert_df_to_excel(pofd_pivot_summary, include_index=True)
     st.download_button(
         label="Download On The Way Summary as Excel",
         data=excel_on_the_way_file,
@@ -155,10 +155,62 @@ with tab2:
     )
 
     # Download button for the filtered "On The Way" data
-    excel_filtered_on_the_way_file = convert_df_to_excel(filtered_on_the_way, include_index=False)  # Exclude index for filtered data
+    excel_filtered_on_the_way_file = convert_df_to_excel(filtered_on_the_way, include_index=False)
     st.download_button(
         label="Download Filtered On The Way Data as Excel",
         data=excel_filtered_on_the_way_file,
         file_name='filtered_on_the_way_data.xlsx',
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
+# =================== Tab 3: Utilized ===================
+with tab3:
+    # Dropdown for Region Name
+    region_options_utilized = data['Region Name'].unique()
+    selected_region_utilized = st.selectbox("Select Region Name:", region_options_utilized, key='utilized_region')
+
+    # Dropdown for POL Port
+    pol_options_utilized = data[data['Region Name'] == selected_region_utilized]['POL Port'].unique()
+    selected_pol_utilized = st.selectbox("Select POL Port:", pol_options_utilized, key='utilized_pol')
+
+    # Dropdown for Company
+    company_options_utilized = data['Company'].unique().tolist()
+    company_options_utilized.insert(0, "ALL")
+    selected_company_utilized = st.selectbox("Select Company:", company_options_utilized, key='utilized_company')
+
+    # Filter data for "Utilized" summary
+    utilized_data = data[data['Activity Mode'] == 'Utilized']
+
+    # Further filter based on selected POL Port and Company
+    filtered_utilized = utilized_data[
+        (utilized_data['POL Port'] == selected_pol_utilized) &
+        (utilized_data['Company'].isin(company_options_utilized if selected_company_utilized == "ALL" else [selected_company_utilized]))
+    ]
+
+    # Create the pivot table for "Utilized" summary by POL Agent
+    utilized_pivot_summary = pd.pivot_table(
+        filtered_utilized,
+        values='Container #',
+        index='POL Agent',
+        columns='Size',
+        aggfunc='count',
+        fill_value=0
+    )
+
+    # Add columns for total counts of 20' and 40' containers
+    utilized_pivot_summary['Grand Total'] = utilized_pivot_summary.sum(axis=1)
+
+    # Add total row
+    utilized_pivot_summary.loc['Grand Total'] = utilized_pivot_summary.sum()
+
+    # Display the pivot summary for "Utilized" in the app
+    st.write("Utilized Container Summary:")
+    st.dataframe(utilized_pivot_summary)
+
+    # Download button for the "Utilized" summary
+    excel_utilized_file = convert_df_to_excel(utilized_pivot_summary, include_index=True)
+    st.download_button(
+        label="Download Utilized Summary as Excel",
+        data=excel_utilized_file,
+        file_name='utilized_summary.xlsx',
+        mime='application/vnd.openxmlformats
