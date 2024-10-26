@@ -19,24 +19,24 @@ tab1, tab2 = st.tabs(["MYT Containers", "On The Way"])
 with tab1:
     # Dropdown for Region Name
     region_options = data['Region Name'].unique()
-    selected_region = st.selectbox("Select Region Name:", region_options)
+    selected_region = st.selectbox("Select Region Name:", region_options, key='myt_region')
 
     # Dropdown for POL Port
     pol_options = data[data['Region Name'] == selected_region]['POL Port'].unique()
-    selected_pol = st.selectbox("Select POL Port:", pol_options)
+    selected_pol = st.selectbox("Select POL Port:", pol_options, key='myt_pol')
 
     # Dropdown for Activity Mode
     activity_options = ['Empty', 'On The Way', 'Utilized']
-    selected_activity = st.selectbox("Select Activity Mode:", activity_options)
+    selected_activity = st.selectbox("Select Activity Mode:", activity_options, key='myt_activity')
 
     # Dropdown for Company
     company_options = data['Company'].unique().tolist()  # Get unique company names
     company_options.insert(0, "ALL")  # Add "ALL" option at the top
-    selected_company = st.selectbox("Select Company:", company_options)
+    selected_company = st.selectbox("Select Company:", company_options, key='myt_company')
 
     # Dropdown for Type
     type_options = ['Dry', 'Special']
-    selected_type = st.selectbox("Select Type:", type_options)
+    selected_type = st.selectbox("Select Type:", type_options, key='myt_type')
 
     # Define size categories based on the selected type
     if selected_type == 'Dry':
@@ -108,12 +108,12 @@ with tab1:
 with tab2:
     # Dropdown for POFD Port
     pofd_port_options = data['POFD Port'].unique()
-    selected_pofd_port = st.selectbox("Select POFD Port:", pofd_port_options)
+    selected_pofd_port = st.selectbox("Select POFD Port:", pofd_port_options, key='on_the_way_pofd')
 
     # Dropdown for Company
     company_options_on_the_way = data['Company'].unique().tolist()  # Get unique company names
     company_options_on_the_way.insert(0, "ALL")  # Add "ALL" option at the top
-    selected_company_on_the_way = st.selectbox("Select Company:", company_options_on_the_way)
+    selected_company_on_the_way = st.selectbox("Select Company:", company_options_on_the_way, key='on_the_way_company')
 
     # Filter data for "On The Way" summary
     on_the_way_data = data[data['Activity Mode'] == 'On The Way']
