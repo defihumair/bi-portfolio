@@ -20,7 +20,7 @@ pol_options = data[data['Region Name'] == selected_region]['POL Port'].unique()
 selected_pol = st.selectbox("Select POL Port:", pol_options)
 
 # Dropdown for Activity Mode
-activity_options = ['Empty']
+activity_options = ['Empty', 'On The Way', 'Utilized']
 selected_activity = st.selectbox("Select Activity Mode:", activity_options)
 
 # Dropdown for Type
