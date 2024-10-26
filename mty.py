@@ -2,6 +2,15 @@ import pandas as pd
 import streamlit as st
 from io import BytesIO
 
+# Function to convert DataFrame to Excel
+def convert_df_to_excel(df, include_index=True):
+    """Convert DataFrame to Excel file."""
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=include_index)
+    output.seek(0)
+    return output.getvalue()
+
 # Load your Excel data
 file_path = 'ContainerActivity.xlsx'
 sheet_name = 'Sheet1'  # Adjust if needed
