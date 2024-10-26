@@ -25,26 +25,23 @@ with tab1:
     pol_options_myt = data[data['Region Name'] == selected_region_myt]['POL Port'].unique()
     selected_pol_myt = st.selectbox("Select POL Port:", pol_options_myt, key='myt_pol')
 
-    # Dropdown for Activity Mode (multiple selection)
-    activity_options_myt = ['Empty', 'On The Way', 'Utilized']
-    selected_activity_myt = st.multiselect("Select Activity Mode:", activity_options_myt, default=['Empty'], key='myt_activity')
-
     # Dropdown for Company
     company_options_myt = data['Company'].unique().tolist()
     company_options_myt.insert(0, "ALL")
     selected_company_myt = st.selectbox("Select Company:", company_options_myt, key='myt_company')
 
-    # Filter data for "MYT Containers" summary
-    myt_data = data[
-        (data['Region Name'] == selected_region_myt) &
-        (data['POL Port'] == selected_pol_myt) &
-        (data['Activity Mode'].isin(selected_activity_myt)) &  # Filter by selected activities
-        (data['Company'].isin(company_options_myt if selected_company_myt == "ALL" else [selected_company_myt]))
+    # Filter data for MYT summary (only for Empty Activity Mode)
+    myt_data = data[data['Activity Mode'] == 'Empty']
+
+    # Further filter based on selected POL Port and Company
+    filtered_myt = myt_data[
+        (myt_data['POL Port'] == selected_pol_myt) &
+        (myt_data['Company'].isin(company_options_myt if selected_company_myt == "ALL" else [selected_company_myt]))
     ]
 
-    # Create the pivot table for "MYT Containers" summary by POL Agent
+    # Create the pivot table for MYT summary by POL Agent
     myt_pivot_summary = pd.pivot_table(
-        myt_data,
+        filtered_myt,
         values='Container #',
         index='POL Agent',
         columns='Size',
@@ -58,11 +55,11 @@ with tab1:
     # Add total row
     myt_pivot_summary.loc['Grand Total'] = myt_pivot_summary.sum()
 
-    # Display the pivot summary for "MYT Containers" in the app
+    # Display the pivot summary for MYT in the app
     st.write("MYT Container Summary:")
     st.dataframe(myt_pivot_summary)
 
-    # Download button for the "MYT Containers" summary
+    # Download button for the MYT summary
     excel_myt_file = convert_df_to_excel(myt_pivot_summary, include_index=True)
     st.download_button(
         label="Download MYT Summary as Excel",
@@ -71,8 +68,8 @@ with tab1:
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-    # Download button for the filtered "MYT Containers" data
-    excel_filtered_myt_file = convert_df_to_excel(myt_data, include_index=False)
+    # Download button for the filtered MYT data
+    excel_filtered_myt_file = convert_df_to_excel(filtered_myt, include_index=False)
     st.download_button(
         label="Download Filtered MYT Data as Excel",
         data=excel_filtered_myt_file,
