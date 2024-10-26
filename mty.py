@@ -2,15 +2,6 @@ import pandas as pd
 import streamlit as st
 from io import BytesIO
 
-# Function to convert DataFrame to Excel
-def convert_df_to_excel(df, include_index=True):
-    """Convert DataFrame to Excel file."""
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=include_index)
-    output.seek(0)
-    return output.getvalue()
-
 # Load your Excel data
 file_path = 'ContainerActivity.xlsx'
 sheet_name = 'Sheet1'  # Adjust if needed
@@ -30,8 +21,9 @@ with tab1:
     region_options_myt = data['Region Name'].unique()
     selected_region_myt = st.selectbox("Select Region Name:", region_options_myt, key='myt_region')
 
-    # Dropdown for POL Port based on selected Region
-    pol_options_myt = data[data['Region Name'] == selected_region_myt]['POL Port'].unique()
+    # Dropdown for POL Port based on selected Region with "ALL" option
+    pol_options_myt = data[data['Region Name'] == selected_region_myt]['POL Port'].unique().tolist()
+    pol_options_myt.insert(0, "ALL")  # Add "ALL" option
     selected_pol_myt = st.selectbox("Select POL Port:", pol_options_myt, key='myt_pol')
 
     # Dropdown for Company
@@ -44,7 +36,8 @@ with tab1:
 
     # Further filter based on selected POL Port and Company
     filtered_myt = myt_data[
-        (myt_data['POL Port'] == selected_pol_myt) &
+        (myt_data['Region Name'] == selected_region_myt) &
+        (myt_data['POL Port'].isin(pol_options_myt if selected_pol_myt == "ALL" else [selected_pol_myt])) &
         (myt_data['Company'].isin(company_options_myt if selected_company_myt == "ALL" else [selected_company_myt]))
     ]
 
@@ -151,8 +144,9 @@ with tab3:
     region_options_utilized = data['Region Name'].unique()
     selected_region_utilized = st.selectbox("Select Region Name:", region_options_utilized, key='utilized_region')
 
-    # Dropdown for POL Port based on selected Region
-    pol_options_utilized = data[data['Region Name'] == selected_region_utilized]['POL Port'].unique()
+    # Dropdown for POL Port based on selected Region with "ALL" option
+    pol_options_utilized = data[data['Region Name'] == selected_region_utilized]['POL Port'].unique().tolist()
+    pol_options_utilized.insert(0, "ALL")  # Add "ALL" option
     selected_pol_utilized = st.selectbox("Select POL Port:", pol_options_utilized, key='utilized_pol')
 
     # Dropdown for Company
@@ -165,7 +159,8 @@ with tab3:
 
     # Further filter based on selected POL Port and Company
     filtered_utilized = utilized_data[
-        (utilized_data['POL Port'] == selected_pol_utilized) &
+        (utilized_data['Region Name'] == selected_region_utilized) &
+        (utilized_data['POL Port'].isin(pol_options_utilized if selected_pol_utilized == "ALL" else [selected_pol_utilized])) &
         (utilized_data['Company'].isin(company_options_utilized if selected_company_utilized == "ALL" else [selected_company_utilized]))
     ]
 
@@ -198,11 +193,4 @@ with tab3:
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-    # Download button for the filtered Utilized data
-    excel_filtered_utilized_file = convert_df_to_excel(filtered_utilized, include_index=False)
-    st.download_button(
-        label="Download Filtered Utilized Data as Excel",
-        data=excel_filtered_utilized_file,
-        file_name='filtered_utilized_data.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
+    # Download button for the filtered
