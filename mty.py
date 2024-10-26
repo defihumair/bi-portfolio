@@ -2,6 +2,28 @@ import pandas as pd
 import streamlit as st
 from io import BytesIO
 
+def convert_df_to_excel(df: pd.DataFrame, include_index: bool = True) -> BytesIO:
+    """
+    Convert a DataFrame to an Excel file.
+
+    Parameters:
+    df (pd.DataFrame): DataFrame to convert.
+    include_index (bool): Whether to include index in the Excel file.
+
+    Returns:
+    BytesIO: Excel file as a BytesIO object.
+    """
+    # Create a BytesIO object to save the Excel file
+    output = BytesIO()
+    
+    # Use pandas Excel writer to save the DataFrame to the BytesIO object
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=include_index)
+        
+    # Seek to the beginning of the BytesIO object
+    output.seek(0)
+    return output
+
 # Load your Excel data
 file_path = 'ContainerActivity.xlsx'
 sheet_name = 'Sheet1'  # Adjust if needed
@@ -178,19 +200,3 @@ with tab3:
     utilized_pivot_summary['Grand Total'] = utilized_pivot_summary.sum(axis=1)
 
     # Add total row
-    utilized_pivot_summary.loc['Grand Total'] = utilized_pivot_summary.sum()
-
-    # Display the pivot summary for Utilized in the app
-    st.write("Utilized Container Summary:")
-    st.dataframe(utilized_pivot_summary)
-
-    # Download button for the Utilized summary
-    excel_utilized_file = convert_df_to_excel(utilized_pivot_summary, include_index=True)
-    st.download_button(
-        label="Download Utilized Summary as Excel",
-        data=excel_utilized_file,
-        file_name='utilized_summary.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-
-    # Download button for the filtered
