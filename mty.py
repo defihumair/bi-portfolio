@@ -3,14 +3,14 @@ import streamlit as st
 from io import BytesIO
 
 # Load your Excel data
-file_path = 'ContainerActivity.xlsx'
+file_path = 'E:/DashApp ContainerActivity/ContainerActivity.xlsx'
 sheet_name = 'Sheet1'  # Adjust if needed
 
 # Read the Excel file
 data = pd.read_excel(file_path, sheet_name=sheet_name)
 
 # Display the title of the app
-st.title("Container Summary By Humair")
+st.title("Container Summary")
 
 # Dropdown for Region Name
 region_options = data['Region Name'].unique()
@@ -23,6 +23,11 @@ selected_pol = st.selectbox("Select POL Port:", pol_options)
 # Dropdown for Activity Mode
 activity_options = ['Empty', 'On The Way', 'Utilized']
 selected_activity = st.selectbox("Select Activity Mode:", activity_options)
+
+# Dropdown for Company
+company_options = data['Company'].unique().tolist()  # Get unique company names
+company_options.insert(0, "ALL")  # Add "ALL" option at the top
+selected_company = st.selectbox("Select Company:", company_options)
 
 # Dropdown for Type
 type_options = ['Dry', 'Special']
@@ -43,6 +48,10 @@ filtered_data = data[
     (data['Activity Mode'] == selected_activity) &
     (data['Type'].isin(size_categories))
 ]
+
+# Additional filtering for Company selection
+if selected_company != "ALL":  # If not selecting all companies
+    filtered_data = filtered_data[filtered_data['Company'] == selected_company]
 
 # Include only 20' and 40' in the pivot table
 pivot_summary = pd.pivot_table(
