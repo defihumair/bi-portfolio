@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 streamlit
 pandas
 openpyxl
 xlsxwriter
-=======
-gdown
->>>>>>> 447e8c8 (Add gdown to requirements)
