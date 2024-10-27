@@ -3,6 +3,16 @@ import streamlit as st
 from io import BytesIO
 
 def convert_df_to_excel(df: pd.DataFrame, include_index: bool = True) -> BytesIO:
+    """
+    Convert a DataFrame to an Excel file.
+
+    Parameters:
+    df (pd.DataFrame): DataFrame to convert.
+    include_index (bool): Whether to include index in the Excel file.
+
+    Returns:
+    BytesIO: Excel file as a BytesIO object.
+    """
     # Create a BytesIO object to save the Excel file
     output = BytesIO()
     
@@ -27,6 +37,9 @@ st.title("Container Summary By Humair")
 # Tab structure for different summaries
 tab1, tab2, tab3 = st.tabs(["MYT Containers", "On The Way", "Utilized"])
 
+# Define the type options
+type_options = ["Dry", "Special"]
+
 # =================== Tab 1: MYT Containers ===================
 with tab1:
     # Dropdown for Region Name
@@ -44,7 +57,6 @@ with tab1:
     selected_company_myt = st.selectbox("Select Company:", company_options_myt, key='myt_company')
 
     # Dropdown for Type
-    type_options = ["Dry", "Special"]
     selected_type_myt = st.selectbox("Select Type:", type_options, key='myt_type')
 
     # Filter data for MYT summary (only for Empty Activity Mode)
@@ -113,15 +125,15 @@ with tab2:
     # Filter data for "On The Way" summary
     on_the_way_data = data[data['Activity Mode'] == 'On The Way']
 
-    # Further filter for the selected POFD Port, Company, and Type
-    filtered_on_the_way = on_the_way_data[
-        (on_the_way_data['POFD Port'] == selected_pofd_port) &
-        (on_the_way_data['Type'] == selected_type_on_the_way)  # Filter by Type
-    ]
+    # Further filter for the selected POFD Port
+    filtered_on_the_way = on_the_way_data[on_the_way_data['POFD Port'] == selected_pofd_port]
 
     # Additional filtering for Company selection
     if selected_company_on_the_way != "ALL":
         filtered_on_the_way = filtered_on_the_way[filtered_on_the_way['Company'] == selected_company_on_the_way]
+
+    # Further filter by Type
+    filtered_on_the_way = filtered_on_the_way[filtered_on_the_way['Type'] == selected_type_on_the_way]
 
     # Create the pivot table for "On The Way" summary by POFD Agent
     pofd_pivot_summary = pd.pivot_table(
@@ -187,44 +199,4 @@ with tab3:
     filtered_utilized = utilized_data[
         (utilized_data['Region Name'] == selected_region_utilized) &
         (utilized_data['POL Port'].isin(pol_options_utilized if selected_pol_utilized == "ALL" else [selected_pol_utilized])) &
-        (utilized_data['Company'].isin(company_options_utilized if selected_company_utilized == "ALL" else [selected_company_utilized])) &
-        (utilized_data['Type'] == selected_type_utilized)  # Filter by Type
-    ]
-
-    # Create the pivot table for utilized summary by POL Agent
-    utilized_pivot_summary = pd.pivot_table(
-        filtered_utilized,
-        values='Container #',
-        index='POL Agent',
-        columns='Size',
-        aggfunc='count',
-        fill_value=0
-    )
-
-    # Add columns for total counts of 20' and 40' containers
-    utilized_pivot_summary['Grand Total'] = utilized_pivot_summary.sum(axis=1)
-
-    # Add total row
-    utilized_pivot_summary.loc['Grand Total'] = utilized_pivot_summary.sum()
-
-    # Display the pivot summary for utilized in the app
-    st.write("Utilized Container Summary:")
-    st.dataframe(utilized_pivot_summary)
-
-    # Download button for the utilized summary
-    excel_utilized_file = convert_df_to_excel(utilized_pivot_summary, include_index=True)
-    st.download_button(
-        label="Download Utilized Summary as Excel",
-        data=excel_utilized_file,
-        file_name='utilized_summary.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-
-    # Download button for the filtered utilized data
-    excel_filtered_utilized_file = convert_df_to_excel(filtered_utilized, include_index=False)
-    st.download_button(
-        label="Download Filtered Utilized Data as Excel",
-        data=excel_filtered_utilized_file,
-        file_name='filtered_utilized_data.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
+        (utilized_data['
