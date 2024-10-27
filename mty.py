@@ -200,8 +200,18 @@ with tab3:
     container_types = ["Dry", "Special"]
     selected_type_utilized = st.selectbox("Select Container Type:", container_types, key='utilized_type')
 
-    # Filter data for Utilized summary (for specific Activities)
-    utilized_data = data[data['Activity'].isin(['DISCHARGE FULL', 'SENT TO CONSIGNEE'])]
+    # Dropdown for Utilize Type
+    utilize_types = ["Import Utilize", "Export Utilize"]
+    selected_utilize_type = st.selectbox("Select Utilize Type:", utilize_types, key='utilized_type_selection')
+
+    # Define activities based on selected Utilize Type
+    if selected_utilize_type == "Import Utilize":
+        activities = ['DISCHARGE FULL', 'SENT TO CONSIGNEE']
+    else:  # Export Utilize
+        activities = ['SENT TO SHIPPER', 'RECEIVE FROM SHIPPER']
+
+    # Filter data for Utilized summary (based on selected activities)
+    utilized_data = data[data['Activity'].isin(activities)]
 
     # Further filter based on selected POL Port, Company, and Container Type
     if selected_type_utilized == "Dry":
