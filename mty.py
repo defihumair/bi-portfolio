@@ -37,8 +37,8 @@ st.title("Container Summary By Humair")
 # Tab structure for different summaries
 tab1, tab2, tab3 = st.tabs(["MYT Containers", "On The Way", "Utilized"])
 
-# Define the type options
-type_options = ["Dry", "Special"]
+# Define the Container Type options
+container_type_options = ["Dry", "Special"]
 
 # =================== Tab 1: MYT Containers ===================
 with tab1:
@@ -56,18 +56,22 @@ with tab1:
     company_options_myt.insert(0, "ALL")
     selected_company_myt = st.selectbox("Select Company:", company_options_myt, key='myt_company')
 
-    # Dropdown for Type
-    selected_type_myt = st.selectbox("Select Type:", type_options, key='myt_type')
+    # Dropdown for Container Type
+    selected_type_myt = st.selectbox("Select Container Type:", container_type_options, key='myt_type')
 
     # Filter data for MYT summary (only for Empty Activity Mode)
     myt_data = data[data['Activity Mode'] == 'Empty']
 
     # Further filter based on selected POL Port, Company, and Type
+    if selected_type_myt == "Dry":
+        myt_data = myt_data[myt_data['Type'].isin(['Heavy Duty', 'Hi-Cube'])]
+    else:  # Special
+        myt_data = myt_data[myt_data['Type'].isin(['Flat Rack', 'Open Top', 'Reefer', 'Standard'])]
+
     filtered_myt = myt_data[
         (myt_data['Region Name'] == selected_region_myt) &
         (myt_data['POL Port'].isin(pol_options_myt if selected_pol_myt == "ALL" else [selected_pol_myt])) &
-        (myt_data['Company'].isin(company_options_myt if selected_company_myt == "ALL" else [selected_company_myt])) &
-        (myt_data['Type'] == selected_type_myt)  # Filter by Type
+        (myt_data['Company'].isin(company_options_myt if selected_company_myt == "ALL" else [selected_company_myt]))
     ]
 
     # Create the pivot table for MYT summary by POL Agent
@@ -108,6 +112,74 @@ with tab1:
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
+# =================== Tab 2: On The Way ===================
+with tab2:
+    # Dropdown for POFD Port
+    pofd_port_options = data['POFD Port'].unique()
+    selected_pofd_port = st.selectbox("Select POFD Port:", pofd_port_options, key='on_the_way_pofd')
+
+    # Dropdown for Company
+    company_options_on_the_way = data['Company'].unique().tolist()
+    company_options_on_the_way.insert(0, "ALL")
+    selected_company_on_the_way = st.selectbox("Select Company:", company_options_on_the_way, key='on_the_way_company')
+
+    # Dropdown for Container Type
+    selected_type_on_the_way = st.selectbox("Select Container Type:", container_type_options, key='on_the_way_type')
+
+    # Filter data for "On The Way" summary
+    on_the_way_data = data[data['Activity Mode'] == 'On The Way']
+
+    # Filter by Container Type
+    if selected_type_on_the_way == "Dry":
+        on_the_way_data = on_the_way_data[on_the_way_data['Type'].isin(['Heavy Duty', 'Hi-Cube'])]
+    else:  # Special
+        on_the_way_data = on_the_way_data[on_the_way_data['Type'].isin(['Flat Rack', 'Open Top', 'Reefer', 'Standard'])]
+
+    # Further filter for the selected POFD Port
+    filtered_on_the_way = on_the_way_data[on_the_way_data['POFD Port'] == selected_pofd_port]
+
+    # Additional filtering for Company selection
+    if selected_company_on_the_way != "ALL":
+        filtered_on_the_way = filtered_on_the_way[filtered_on_the_way['Company'] == selected_company_on_the_way]
+
+    # Create the pivot table for "On The Way" summary by POFD Agent
+    pofd_pivot_summary = pd.pivot_table(
+        filtered_on_the_way,
+        values='Container #',
+        index='POFD Agent',
+        columns='Size',
+        aggfunc='count',
+        fill_value=0
+    )
+
+    # Add columns for total counts of 20' and 40' containers
+    pofd_pivot_summary['Grand Total'] = pofd_pivot_summary.sum(axis=1)
+
+    # Add total row
+    pofd_pivot_summary.loc['Grand Total'] = pofd_pivot_summary.sum()
+
+    # Display the pivot summary for "On The Way" in the app
+    st.write("On The Way Container Summary:")
+    st.dataframe(pofd_pivot_summary)
+
+    # Download button for the "On The Way" summary
+    excel_on_the_way_file = convert_df_to_excel(pofd_pivot_summary, include_index=True)
+    st.download_button(
+        label="Download On The Way Summary as Excel",
+        data=excel_on_the_way_file,
+        file_name='on_the_way_summary.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+    # Download button for the filtered "On The Way" data
+    excel_filtered_on_the_way_file = convert_df_to_excel(filtered_on_the_way, include_index=False)
+    st.download_button(
+        label="Download Filtered On The Way Data as Excel",
+        data=excel_filtered_on_the_way_file,
+        file_name='filtered_on_the_way_data.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
 # =================== Tab 3: Utilized ===================
 with tab3:
     # Dropdown for Region Name
@@ -124,55 +196,5 @@ with tab3:
     company_options_utilized.insert(0, "ALL")
     selected_company_utilized = st.selectbox("Select Company:", company_options_utilized, key='utilized_company')
 
-    # Dropdown for Type
-    type_options = ['Dry', 'Special']  # Options for Type
-    selected_type_utilized = st.selectbox("Select Type:", type_options, key='utilized_type')
-
-    # Filter data for Utilized summary (for specific Activities)
-    utilized_data = data[data['Activity'].isin(['DISCHARGE FULL', 'SENT TO CONSIGNEE'])]
-
-    # Further filter based on selected POL Port, Company, and Type
-    filtered_utilized = utilized_data[
-        (utilized_data['Region Name'] == selected_region_utilized) &
-        (utilized_data['POL Port'].isin(pol_options_utilized if selected_pol_utilized == "ALL" else [selected_pol_utilized])) &
-        (utilized_data['Company'].isin(company_options_utilized if selected_company_utilized == "ALL" else [selected_company_utilized])) &
-        (utilized_data['Type'] == selected_type_utilized)  # Filter by Type
-    ]
-
-    # Create the pivot table for Utilized summary by POL Agent
-    utilized_pivot_summary = pd.pivot_table(
-        filtered_utilized,
-        values='Container #',
-        index='POL Agent',
-        columns='Size',
-        aggfunc='count',
-        fill_value=0
-    )
-
-    # Add columns for total counts of 20' and 40' containers
-    utilized_pivot_summary['Grand Total'] = utilized_pivot_summary.sum(axis=1)
-
-    # Add total row
-    utilized_pivot_summary.loc['Grand Total'] = utilized_pivot_summary.sum()
-
-    # Display the pivot summary for Utilized in the app
-    st.write("Utilized Container Summary:")
-    st.dataframe(utilized_pivot_summary)
-
-    # Download button for the Utilized summary
-    excel_utilized_file = convert_df_to_excel(utilized_pivot_summary, include_index=True)
-    st.download_button(
-        label="Download Utilized Summary as Excel",
-        data=excel_utilized_file,
-        file_name='utilized_summary.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-
-    # Download button for the filtered Utilized data
-    excel_filtered_utilized_file = convert_df_to_excel(filtered_utilized, include_index=False)
-    st.download_button(
-        label="Download Filtered Utilized Data as Excel",
-        data=excel_filtered_utilized_file,
-        file_name='filtered_utilized_data.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
+    # Dropdown for Container Type
+    selected_type_utilized = st.selectbox("Select Container Type:", container
