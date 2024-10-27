@@ -35,7 +35,7 @@ data = pd.read_excel(file_path, sheet_name=sheet_name)
 st.title("Container Summary By Humair")
 
 # Tab structure for different summaries
-tab1, tab2, tab3 = st.tabs(["MYT Containers", "On The Way", "Utilized DF & STC"])
+tab1, tab2, tab3 = st.tabs(["MYT Containers", "On The Way", "Utilized"])
 
 # Define the Container Type options
 container_type_options = ["Dry", "Special"]
