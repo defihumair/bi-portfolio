@@ -197,4 +197,58 @@ with tab3:
     selected_company_utilized = st.selectbox("Select Company:", company_options_utilized, key='utilized_company')
 
     # Dropdown for Container Type
-    selected_type_utilized = st.selectbox("Select Container Type:", container
+    container_types = ["Dry", "Special"]
+    selected_type_utilized = st.selectbox("Select Container Type:", container_types, key='utilized_type')
+
+    # Filter data for Utilized summary (for specific Activities)
+    utilized_data = data[data['Activity'].isin(['DISCHARGE FULL', 'SENT TO CONSIGNEE'])]
+
+    # Further filter based on selected POL Port, Company, and Container Type
+    if selected_type_utilized == "Dry":
+        utilized_data = utilized_data[utilized_data['Type'].isin(['Heavy Duty', 'Hi-Cube'])]
+    elif selected_type_utilized == "Special":
+        utilized_data = utilized_data[utilized_data['Type'].isin(['Flat Rack', 'Open Top', 'Reefer', 'Standard'])]
+
+    filtered_utilized = utilized_data[
+        (utilized_data['Region Name'] == selected_region_utilized) &
+        (utilized_data['POL Port'].isin(pol_options_utilized if selected_pol_utilized == "ALL" else [selected_pol_utilized])) &
+        (utilized_data['Company'].isin(company_options_utilized if selected_company_utilized == "ALL" else [selected_company_utilized]))
+    ]
+
+    # Create the pivot table for Utilized summary by POL Agent
+    utilized_pivot_summary = pd.pivot_table(
+        filtered_utilized,
+        values='Container #',
+        index='POL Agent',
+        columns='Size',
+        aggfunc='count',
+        fill_value=0
+    )
+
+    # Add columns for total counts of 20' and 40' containers
+    utilized_pivot_summary['Grand Total'] = utilized_pivot_summary.sum(axis=1)
+
+    # Add total row
+    utilized_pivot_summary.loc['Grand Total'] = utilized_pivot_summary.sum()
+
+    # Display the pivot summary for Utilized in the app
+    st.write("Utilized Container Summary:")
+    st.dataframe(utilized_pivot_summary)
+
+    # Download button for the Utilized summary
+    excel_utilized_file = convert_df_to_excel(utilized_pivot_summary, include_index=True)
+    st.download_button(
+        label="Download Utilized Summary as Excel",
+        data=excel_utilized_file,
+        file_name='utilized_summary.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+    # Download button for the filtered Utilized data
+    excel_filtered_utilized_file = convert_df_to_excel(filtered_utilized, include_index=False)
+    st.download_button(
+        label="Download Filtered Utilized Data as Excel",
+        data=excel_filtered_utilized_file,
+        file_name='filtered_utilized_data.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
