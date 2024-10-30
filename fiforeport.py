@@ -5,11 +5,7 @@ import openpyxl  # Add this import for openpyxl support
 @st.cache_data
 def load_data():
     # Load the Excel data from the specified file path
-<<<<<<< HEAD
     file_path = 'ContainerActivity.xlsx'  # Adjust the path as necessary
-=======
-    file_path = 'E:\\DashApp\\ContainerActivity.xlsx'  # Adjust the path as necessary
->>>>>>> 7ef044d (Add ContainerActivity.xlsx and update fiforeport.py)
     return pd.read_excel(file_path, usecols=['Container #', 'POL Port', 'POL Agent', 'Size', 'Ageing Days', 'Activity Mode', 'Type'])
 
 # Load the Excel data
@@ -131,4 +127,3 @@ else:
                 )
         else:
             st.write("No agent has sufficient containers to fulfill the request.")
-
