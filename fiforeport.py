@@ -18,7 +18,7 @@ container_types = {
 }
 
 # User input section
-st.title("Container Agent Assignment")
+st.title("Release Container on FIFO")
 input_port = st.text_input('Enter Port:', 'AEJEA')
 input_size = st.text_input("Enter Size (e.g., 20'):", "40'")
 input_quantity = st.number_input('Enter Quantity:', min_value=1)
