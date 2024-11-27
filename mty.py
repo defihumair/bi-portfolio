@@ -81,9 +81,9 @@ with tab2:
 
     # Filter POFD Port options based on Region Name selection
     if selected_region_on_the_way == "MIDDLE EAST":
-        pofd_port_options = data[data['POFD Port'].isin(middle_east_ports)]['POFD Port'].unique()
+        pofd_port_options = middle_east_ports + ["ALL"]
     else:
-        pofd_port_options = data['POFD Port'].unique()
+        pofd_port_options = data['POFD Port'].unique().tolist()
     selected_pofd_port = st.selectbox("Select POFD Port:", pofd_port_options, key='on_the_way_pofd')
 
     # Define Company options with "ALL"
@@ -109,7 +109,11 @@ with tab2:
         on_the_way_data = on_the_way_data[on_the_way_data['Type'] == 'Standard']
 
     # Filter data based on selected POFD Port and Company
-    filtered_on_the_way = on_the_way_data[on_the_way_data['POFD Port'] == selected_pofd_port]
+    if selected_region_on_the_way == "MIDDLE EAST" and selected_pofd_port == "ALL":
+        filtered_on_the_way = on_the_way_data[on_the_way_data['POFD Port'].isin(middle_east_ports)]
+    else:
+        filtered_on_the_way = on_the_way_data[on_the_way_data['POFD Port'] == selected_pofd_port]
+    
     if selected_company_on_the_way != "ALL":
         filtered_on_the_way = filtered_on_the_way[filtered_on_the_way['Company'] == selected_company_on_the_way]
 
@@ -141,6 +145,7 @@ with tab2:
         file_name='filtered_on_the_way_data.xlsx',
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
 
 
 # =================== Tab 3: Utilized ===================
