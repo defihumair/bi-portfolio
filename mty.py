@@ -72,14 +72,33 @@ with tab1:
 
 # =================== Tab 2: On The Way ===================
 with tab2:
-    pofd_port_options = data['POFD Port'].unique()
+    # Define Region Name options including "Not Select" option
+    region_options_on_the_way = ["Not Select", "MIDDLE EAST"]
+    selected_region_on_the_way = st.selectbox("Select Region Name:", region_options_on_the_way, key='on_the_way_region')
+    
+    # Define Middle East POFD Ports
+    middle_east_ports = ["AEJEA", "IQUQR", "BHBAH", "OMSOH", "QAHMD", "KWSWK", "KWSAA"]
+
+    # Filter POFD Port options based on Region Name selection
+    if selected_region_on_the_way == "MIDDLE EAST":
+        pofd_port_options = data[data['POFD Port'].isin(middle_east_ports)]['POFD Port'].unique()
+    else:
+        pofd_port_options = data['POFD Port'].unique()
     selected_pofd_port = st.selectbox("Select POFD Port:", pofd_port_options, key='on_the_way_pofd')
+
+    # Define Company options with "ALL"
     company_options_on_the_way = data['Company'].unique().tolist()
     company_options_on_the_way.insert(0, "ALL")
     selected_company_on_the_way = st.selectbox("Select Company:", company_options_on_the_way, key='on_the_way_company')
+
+    # Define Container Type options
+    container_type_options = ["Dry", "Special", "Reefer", "ISO"]
     selected_type_on_the_way = st.selectbox("Select Container Type:", container_type_options, key='on_the_way_type')
 
+    # Filter data for Activity Mode "On The Way"
     on_the_way_data = data[data['Activity Mode'] == 'On The Way']
+    
+    # Filter data based on selected container type
     if selected_type_on_the_way == "Dry":
         on_the_way_data = on_the_way_data[on_the_way_data['Type'].isin(['Heavy Duty', 'Hi-Cube'])]
     elif selected_type_on_the_way == "Special":
@@ -89,27 +108,40 @@ with tab2:
     elif selected_type_on_the_way == "ISO":
         on_the_way_data = on_the_way_data[on_the_way_data['Type'] == 'Standard']
 
+    # Filter data based on selected POFD Port and Company
     filtered_on_the_way = on_the_way_data[on_the_way_data['POFD Port'] == selected_pofd_port]
     if selected_company_on_the_way != "ALL":
         filtered_on_the_way = filtered_on_the_way[filtered_on_the_way['Company'] == selected_company_on_the_way]
 
+    # Create pivot table for On The Way summary
     pofd_pivot_summary = pd.pivot_table(
         filtered_on_the_way, values='Container #', index='POFD Agent', columns='Size', aggfunc='count', fill_value=0
     )
     pofd_pivot_summary['Grand Total'] = pofd_pivot_summary.sum(axis=1)
     pofd_pivot_summary.loc['Grand Total'] = pofd_pivot_summary.sum()
+
+    # Display On The Way Container Summary and provide download options
     st.write("On The Way Container Summary:")
     st.dataframe(pofd_pivot_summary)
+
+    # Convert pivot summary and filtered data to Excel for download
     excel_on_the_way_file = convert_df_to_excel(pofd_pivot_summary, include_index=True)
     st.download_button(
-        label="Download On The Way Summary as Excel", data=excel_on_the_way_file, file_name='on_the_way_summary.xlsx',
+        label="Download On The Way Summary as Excel", 
+        data=excel_on_the_way_file,
+        file_name='on_the_way_summary.xlsx',
         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
+    # Convert filtered On The Way data to Excel for download
     excel_filtered_on_the_way_file = convert_df_to_excel(filtered_on_the_way, include_index=False)
     st.download_button(
-        label="Download Filtered On The Way Data as Excel", data=excel_filtered_on_the_way_file,
-        file_name='filtered_on_the_way_data.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        label="Download Filtered On The Way Data as Excel", 
+        data=excel_filtered_on_the_way_file,
+        file_name='filtered_on_the_way_data.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
 
 # =================== Tab 3: Utilized ===================
 with tab3:
