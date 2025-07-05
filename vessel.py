@@ -10,7 +10,7 @@ from io import BytesIO
 # Load data
 file_path = 'Ametist.xlsx'
 sheet_name = 'Sheet1'  # Adjust if needed
-data = pd.read_excel(file_path, sheet_name=sheet_name)
+df = pd.read_excel(file_path, sheet_name=sheet_name)
 df = df[['Vessel', 'Port of loading', 'Unloading port', 'Departure', 'Arrival']]
 df.dropna(inplace=True)
 
