@@ -8,7 +8,7 @@ import networkx as nx
 from io import BytesIO
 
 # Load data
-file_path = "E:/DashApp/Ametist.xlsx"
+file_path = 'Ametist.xlsx'
 df = pd.read_excel(file_path)
 df = df[['Vessel', 'Port of loading', 'Unloading port', 'Departure', 'Arrival']]
 df.dropna(inplace=True)
