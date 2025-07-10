@@ -80,16 +80,20 @@ if uploaded_file:
 
     # --- sidebar filters ---
     st.sidebar.header("🔎 Filters")
-    port_filter   = st.sidebar.selectbox("POL Port", sorted(raw_df["POL Port"].dropna().unique()))
-    cat_filter    = st.sidebar.selectbox("Category", sorted(raw_df["Category"].dropna().unique()))
-    size_filter   = st.sidebar.selectbox("Size", sorted(raw_df["Size"].dropna().unique()))
 
-    # Type options dependent on Category + Size
+    # POL Port multi-select with default all
+    all_ports = sorted(raw_df["POL Port"].dropna().unique())
+    port_filter = st.sidebar.multiselect("POL Port", all_ports, default=all_ports)
+
+    cat_filter  = st.sidebar.selectbox("Category", sorted(raw_df["Category"].dropna().unique()))
+    size_filter = st.sidebar.selectbox("Size", sorted(raw_df["Size"].dropna().unique()))
+
+    # Type options filtered by selected Category + Size
     available_types = raw_df[(raw_df["Category"] == cat_filter) & (raw_df["Size"] == size_filter)]["Type"].dropna().unique()
     type_filter     = st.sidebar.multiselect("Type", sorted(available_types), default=list(sorted(available_types)))
 
     f_df = raw_df[
-        (raw_df["POL Port"] == port_filter) &
+        raw_df["POL Port"].isin(port_filter) &
         (raw_df["Category"] == cat_filter) &
         (raw_df["Size"] == size_filter) &
         (raw_df["Type"].isin(type_filter))
