@@ -3,106 +3,122 @@ import pandas as pd
 from io import BytesIO
 
 st.set_page_config(page_title="🚢 FIFO Compliance Analyser", layout="wide")
-st.title(":ship: FIFO Compliance Analyser – Jebel Ali / MYT")
+st.title("🚢 FIFO Compliance Analyser – Jebel Ali / MYT")
 
-# --------------------------------------------------
-# 1. Upload Excel file
-# --------------------------------------------------
-uploaded_file = st.file_uploader("📄 Upload latest MYT Excel (DRY sheet)", type=["xlsx"])
-sheet_name = st.text_input("Sheet name", value="DRY")
+# ------------------------------
+# 1 ▸ Upload & sheet selector
+# ------------------------------
+uploaded_file = st.file_uploader("📤 Upload Excel file (MYT)", type=["xlsx"])
+sheet_name    = st.text_input("Sheet name", value="DRY")
 
 @st.cache_data(show_spinner=False)
 def load_data(file, sheet):
     df = pd.read_excel(file, sheet_name=sheet)
     df.columns = df.columns.str.strip()
-    df["IN DATE"] = pd.to_datetime(df["IN DATE"], errors="coerce")
+    df["IN DATE"]  = pd.to_datetime(df["IN DATE"],  errors="coerce")
     df["OUT DATE"] = pd.to_datetime(df["OUT DATE"], errors="coerce")
     return df[df["IN DATE"].notna()]
 
-# --------------------------------------------------
-# 2. FIFO logic helpers
-# --------------------------------------------------
+# ------------------------------
+# 2 ▸ FIFO helpers (size + cat + type aware)
+# ------------------------------
 
 def fifo_status_and_reason(row, df):
     if pd.isna(row["OUT DATE"]):
         return pd.Series(["In Depot", "Still in depot"])
 
-    older_in_depot = df[(df["POL Agent"] == row["POL Agent"]) &
-                        (df["IN DATE"] < row["IN DATE"]) &
-                        (df["OUT DATE"].isna())]
+    mask_same_grp = (
+        (df["POL Agent"] == row["POL Agent"]) &
+        (df["Category"]  == row["Category"]) &
+        (df["Size"]       == row["Size"]) &
+        (df["Type"]       == row["Type"])
+    )
 
-    if not older_in_depot.empty:
-        reason = f"Older box still in depot (IN < {row['IN DATE'].date()})"
-        return pd.Series(["No", reason])
-    else:
+    older_in_depot = df[mask_same_grp & (df["IN DATE"] < row["IN DATE"]) & df["OUT DATE"].isna()]
+
+    if older_in_depot.empty:
         return pd.Series(["Yes", "Released in FIFO order"])
+    oldest_date = older_in_depot["IN DATE"].min().date()
+    return pd.Series(["No", f"Older box still in depot (IN < {oldest_date})"])
 
 @st.cache_data(show_spinner=False)
 def analyse_fifo(df):
     df = df.copy()
     df[["FIFO Status", "FIFO Break Reason"]] = df.apply(lambda r: fifo_status_and_reason(r, df), axis=1)
 
-    def summary_fn(agent_df):
-        released = agent_df[agent_df["FIFO Status"].isin(["Yes", "No"])]
-        yes_cnt = (released["FIFO Status"] == "Yes").sum()
-        no_cnt = (released["FIFO Status"] == "No").sum()
-        fifo_pct = round(yes_cnt / (yes_cnt + no_cnt) * 100, 2) if (yes_cnt + no_cnt) else 0
+    def summary_fn(sub):
+        rel = sub[sub["FIFO Status"].isin(["Yes", "No"])]
+        yes = (rel["FIFO Status"] == "Yes").sum()
+        no  = (rel["FIFO Status"] == "No").sum()
+        pct = round(yes / (yes + no) * 100, 2) if (yes + no) else 0
         return pd.Series({
-            "In Depot": (agent_df["FIFO Status"] == "In Depot").sum(),
-            "No": no_cnt,
-            "Yes": yes_cnt,
-            "Total Released": yes_cnt + no_cnt,
-            "FIFO %": fifo_pct
+            "In Depot": (sub["FIFO Status"] == "In Depot").sum(),
+            "No": no,
+            "Yes": yes,
+            "Released": yes + no,
+            "FIFO %": pct
         })
 
-    summary = (df.groupby("POL Agent", dropna=False)
+    summary = (df.groupby(["POL Port", "POL Agent"], dropna=False)
                  .apply(summary_fn)
                  .reset_index()
-                 .sort_values("FIFO %", ascending=False))
+                 .sort_values(["POL Port", "FIFO %"], ascending=[True, False]))
 
     exceptions = df[df["FIFO Status"] == "No"].copy()
-
     return df, summary, exceptions
 
-# --------------------------------------------------
-# 3. Main App logic
-# --------------------------------------------------
+# ------------------------------
+# 3 ▸ Streamlit logic
+# ------------------------------
 if uploaded_file:
-    with st.spinner("Processing…"):
-        try:
-            raw_df = load_data(uploaded_file, sheet_name)
-            full_df, summary_df, exceptions_df = analyse_fifo(raw_df)
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
-            st.stop()
+    try:
+        raw_df = load_data(uploaded_file, sheet_name)
+    except Exception as e:
+        st.error(f"❌ Failed to load sheet: {e}")
+        st.stop()
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("🛆 Total Containers", len(full_df))
-    col2.metric("🚚 Released", (summary_df["Total Released"].sum()))
-    col3.metric("🏷️ In Depot", (summary_df["In Depot"].sum()))
-    overall_fifo = round(summary_df["Yes"].sum() / max(1, summary_df["Yes"].sum() + summary_df["No"].sum()) * 100, 2)
-    col4.metric("✅ Overall FIFO %", f"{overall_fifo}%")
+    # --- sidebar filters ---
+    st.sidebar.header("🔎 Filters")
+    port_filter   = st.sidebar.multiselect("POL Port", sorted(raw_df["POL Port"].dropna().unique()), default=list(sorted(raw_df["POL Port"].dropna().unique())))
+    cat_filter    = st.sidebar.multiselect("Category", sorted(raw_df["Category"].dropna().unique()), default=list(sorted(raw_df["Category"].dropna().unique())))
+    size_filter   = st.sidebar.multiselect("Size", sorted(raw_df["Size"].dropna().unique()), default=list(sorted(raw_df["Size"].dropna().unique())))
+    type_filter   = st.sidebar.multiselect("Type", sorted(raw_df["Type"].dropna().unique()), default=list(sorted(raw_df["Type"].dropna().unique())))
 
-    tab1, tab2, tab3 = st.tabs(["Agent Summary", "FIFO Exceptions", "Raw Data"])
+    f_df = raw_df[
+        raw_df["POL Port"].isin(port_filter) &
+        raw_df["Category"].isin(cat_filter) &
+        raw_df["Size"].isin(size_filter) &
+        raw_df["Type"].isin(type_filter)
+    ]
+
+    full_df, summary_df, exceptions_df = analyse_fifo(f_df)
+
+    # --- KPIs ---
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Total Boxes", len(full_df))
+    k2.metric("Released", summary_df["Released"].sum())
+    k3.metric("In Depot", summary_df["In Depot"].sum())
+    fifo_total = round(summary_df["Yes"].sum() / max(1, summary_df["Yes"].sum()+summary_df["No"].sum()) * 100, 2)
+    k4.metric("Overall FIFO %", f"{fifo_total}%")
+
+    tab1, tab2, tab3 = st.tabs(["Agent Summary", "Exceptions", "Raw Data"])
 
     with tab1:
-        st.subheader("Agent wise FIFO Compliance")
+        st.subheader("Agent‑Port FIFO Summary")
         st.dataframe(summary_df, use_container_width=True)
         st.bar_chart(summary_df.set_index("POL Agent")["FIFO %"])
 
-        buf = BytesIO()
-        summary_df.to_excel(buf, index=False)
-        st.download_button("📅 Download Summary", buf.getvalue(), file_name="fifo_summary.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        dl1 = BytesIO(); summary_df.to_excel(dl1, index=False)
+        st.download_button("Download Summary", dl1.getvalue(), file_name="fifo_summary.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     with tab2:
-        st.subheader("Containers that Broke FIFO")
-        st.dataframe(exceptions_df[["Container #", "POL Agent", "POL Port", "IN DATE", "OUT DATE", "FIFO Break Reason"]], use_container_width=True)
-        buf2 = BytesIO()
-        exceptions_df.to_excel(buf2, index=False)
-        st.download_button("📅 Download Exceptions", buf2.getvalue(), file_name="fifo_exceptions.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.subheader("Containers Breaking FIFO")
+        st.dataframe(exceptions_df[["Container #", "POL Port", "POL Agent", "Category", "Size", "Type", "IN DATE", "OUT DATE", "FIFO Break Reason"]], use_container_width=True)
+        dl2 = BytesIO(); exceptions_df.to_excel(dl2, index=False)
+        st.download_button("Download Exceptions", dl2.getvalue(), file_name="fifo_exceptions.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     with tab3:
-        st.subheader("Raw Data (with FIFO Status)")
+        st.subheader("Filtered Raw Data with FIFO Status")
         st.dataframe(full_df, use_container_width=True)
 else:
-    st.info("👈 Upload an Excel file to start!")
+    st.info("👈 Upload an Excel file to begin analysis")
