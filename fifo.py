@@ -8,7 +8,7 @@ st.title("🚢 FIFO Compliance Analyser – Jebel Ali / MYT")
 # ------------------------------
 # 1 ▸ Upload & sheet selector
 # ------------------------------
-uploaded_file = st.file_uploader("📤 Upload Excel file (MYT)", type=["xlsx"])
+uploaded_file = st.file_uploader("📄 Upload Excel file (MYT)", type=["xlsx"])
 sheet_name    = st.text_input("Sheet name", value="DRY")
 
 @st.cache_data(show_spinner=False)
@@ -29,6 +29,7 @@ def fifo_status_and_reason(row, df):
 
     mask_same_grp = (
         (df["POL Agent"] == row["POL Agent"]) &
+        (df["POL Port"] == row["POL Port"]) &
         (df["Category"]  == row["Category"]) &
         (df["Size"]       == row["Size"]) &
         (df["Type"]       == row["Type"])
@@ -79,16 +80,19 @@ if uploaded_file:
 
     # --- sidebar filters ---
     st.sidebar.header("🔎 Filters")
-    port_filter   = st.sidebar.multiselect("POL Port", sorted(raw_df["POL Port"].dropna().unique()), default=list(sorted(raw_df["POL Port"].dropna().unique())))
-    cat_filter    = st.sidebar.multiselect("Category", sorted(raw_df["Category"].dropna().unique()), default=list(sorted(raw_df["Category"].dropna().unique())))
-    size_filter   = st.sidebar.multiselect("Size", sorted(raw_df["Size"].dropna().unique()), default=list(sorted(raw_df["Size"].dropna().unique())))
-    type_filter   = st.sidebar.multiselect("Type", sorted(raw_df["Type"].dropna().unique()), default=list(sorted(raw_df["Type"].dropna().unique())))
+    port_filter   = st.sidebar.selectbox("POL Port", sorted(raw_df["POL Port"].dropna().unique()))
+    cat_filter    = st.sidebar.selectbox("Category", sorted(raw_df["Category"].dropna().unique()))
+    size_filter   = st.sidebar.selectbox("Size", sorted(raw_df["Size"].dropna().unique()))
+
+    # Type options dependent on Category + Size
+    available_types = raw_df[(raw_df["Category"] == cat_filter) & (raw_df["Size"] == size_filter)]["Type"].dropna().unique()
+    type_filter     = st.sidebar.multiselect("Type", sorted(available_types), default=list(sorted(available_types)))
 
     f_df = raw_df[
-        raw_df["POL Port"].isin(port_filter) &
-        raw_df["Category"].isin(cat_filter) &
-        raw_df["Size"].isin(size_filter) &
-        raw_df["Type"].isin(type_filter)
+        (raw_df["POL Port"] == port_filter) &
+        (raw_df["Category"] == cat_filter) &
+        (raw_df["Size"] == size_filter) &
+        (raw_df["Type"].isin(type_filter))
     ]
 
     full_df, summary_df, exceptions_df = analyse_fifo(f_df)
