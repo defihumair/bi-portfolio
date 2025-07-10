@@ -81,9 +81,9 @@ if uploaded_file:
     # --- sidebar filters ---
     st.sidebar.header("🔎 Filters")
 
-    # POL Port multi-select with default all
+    # POL Port single-select (no default all)
     all_ports = sorted(raw_df["POL Port"].dropna().unique())
-    port_filter = st.sidebar.multiselect("POL Port", all_ports, default=all_ports)
+    port_filter = st.sidebar.selectbox("POL Port", ["All"] + all_ports)
 
     cat_filter  = st.sidebar.selectbox("Category", sorted(raw_df["Category"].dropna().unique()))
     size_filter = st.sidebar.selectbox("Size", sorted(raw_df["Size"].dropna().unique()))
@@ -92,8 +92,9 @@ if uploaded_file:
     available_types = raw_df[(raw_df["Category"] == cat_filter) & (raw_df["Size"] == size_filter)]["Type"].dropna().unique()
     type_filter     = st.sidebar.multiselect("Type", sorted(available_types), default=list(sorted(available_types)))
 
+    # Apply filter
     f_df = raw_df[
-        raw_df["POL Port"].isin(port_filter) &
+        ((raw_df["POL Port"] == port_filter) if port_filter != "All" else True) &
         (raw_df["Category"] == cat_filter) &
         (raw_df["Size"] == size_filter) &
         (raw_df["Type"].isin(type_filter))
