@@ -4,4 +4,4 @@ openpyxl
 xlsxwriter
 plotly
 networkx
-matplotlib.pyplot
+matplotlib
