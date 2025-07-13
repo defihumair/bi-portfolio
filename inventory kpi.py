@@ -87,22 +87,31 @@ if activity_df is not None and map_df is not None:
 
     # ── Breakdown Tables ───────────────────────────────────────────────────────
     st.subheader("Breakdown by Subordinate")
-    st.dataframe(
-        filt.groupby("subordinate")["Performance"].value_counts().unstack(fill_value=0).reset_index(),
-        use_container_width=True,
-    )
+    sub_df = filt.groupby("subordinate").agg(
+        Total_Activities=("Delay (Days)", "count"),
+        Average_Delay=("Delay (Days)", "mean")
+    ).round(2).reset_index()
+    perf_counts = filt.groupby("subordinate")["Performance"].value_counts().unstack(fill_value=0)
+    sub_table = sub_df.join(perf_counts, on="subordinate")
+    st.dataframe(sub_table.reset_index(drop=True), use_container_width=True)
 
     st.subheader("Breakdown by Lead")
-    st.dataframe(
-        filt.groupby("Lead")["Performance"].value_counts().unstack(fill_value=0).reset_index(),
-        use_container_width=True,
-    )
+    lead_df = filt.groupby("Lead").agg(
+        Total_Activities=("Delay (Days)", "count"),
+        Average_Delay=("Delay (Days)", "mean")
+    ).round(2).reset_index()
+    lead_counts = filt.groupby("Lead")["Performance"].value_counts().unstack(fill_value=0)
+    lead_table = lead_df.join(lead_counts, on="Lead")
+    st.dataframe(lead_table.reset_index(drop=True), use_container_width=True)
 
     st.subheader("Breakdown by Region")
-    st.dataframe(
-        filt.groupby("Region")["Performance"].value_counts().unstack(fill_value=0).reset_index(),
-        use_container_width=True,
-    )
+    region_df = filt.groupby("Region").agg(
+        Total_Activities=("Delay (Days)", "count"),
+        Average_Delay=("Delay (Days)", "mean")
+    ).round(2).reset_index()
+    region_counts = filt.groupby("Region")["Performance"].value_counts().unstack(fill_value=0)
+    region_table = region_df.join(region_counts, on="Region")
+    st.dataframe(region_table.reset_index(drop=True), use_container_width=True)
 
     # ── Monthly, Weekly, Daily KPIs ────────────────────────────────────────────
     st.subheader("📅 Monthly Average Performance")
