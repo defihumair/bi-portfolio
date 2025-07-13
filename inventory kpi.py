@@ -133,10 +133,10 @@ if activity_df is not None and map_df is not None:
         week_label["Rating"] = week_label["Delay (Days)"].apply(get_perf_rating)
         st.dataframe(week_label.rename(columns={"Delay (Days)": "Avg Delay"}), use_container_width=True)
     with col_d:
-        st.markdown("#### Daily (Last 10 Days)")
+        st.markdown("#### Daily Summary (Scroll All)")
         daily = filt.groupby("Date")["Delay (Days)"].mean().round(2).reset_index()
         daily["Rating"] = daily["Delay (Days)"].apply(get_perf_rating)
-        st.dataframe(daily.tail(10).rename(columns={"Delay (Days)": "Avg Delay"}), use_container_width=True)
+        st.dataframe(daily.rename(columns={"Delay (Days)": "Avg Delay"}), use_container_width=True, height=500)
 
     st.markdown("### 📄 Summary Report PDF Download")
     st.warning("⚠️ This feature is under development. You'll be able to export a boss-ready PDF soon.")
