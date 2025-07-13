@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="📈 Inventory KPI Dashboard", layout="wide")
 
@@ -137,6 +138,16 @@ if activity_df is not None and map_df is not None:
         daily = filt.groupby("Date")["Delay (Days)"].mean().round(2).reset_index()
         daily["Rating"] = daily["Delay (Days)"].apply(get_perf_rating)
         st.dataframe(daily.rename(columns={"Delay (Days)": "Avg Delay"}), use_container_width=True, height=500)
+
+    st.markdown("### 📊 Daily Average Delay Chart")
+    chart_data = filt.groupby("Date")["Delay (Days)"].mean().round(2).reset_index()
+    fig, ax = plt.subplots(figsize=(12, 4))
+    ax.plot(chart_data["Date"], chart_data["Delay (Days)"], marker="o", linestyle="-", color="steelblue")
+    ax.set_title("Daily Average Delay Trend", fontsize=14)
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Avg Delay (Days)")
+    ax.grid(True)
+    st.pyplot(fig)
 
     st.markdown("### 📄 Summary Report PDF Download")
     st.warning("⚠️ This feature is under development. You'll be able to export a boss-ready PDF soon.")
