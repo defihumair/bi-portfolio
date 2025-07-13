@@ -95,6 +95,17 @@ if activity_df is not None and map_df is not None:
     sub_tbl["Rating"] = sub_tbl["AvgDelay"].apply(rating)
     st.dataframe(sub_tbl,use_container_width=True)
 
+    # ── Lead / Region tables ──────────────────────────────────────────────────
+    for level in ["Lead", "Region"]:
+        st.markdown(f"### 👤 {level} Performance")
+        df = (filt.groupby(level)
+                 .agg(Total_Activities=("Delay (Days)", "count"),
+                      Average_Delay   =("Delay (Days)", "mean"))
+                 .round(2)
+                 .reset_index())
+        df["Rating"] = df["Average_Delay"].apply(perf_rating)
+        st.dataframe(df, use_container_width=True)
+        
     # ── POL Port Table & Chart ────────────────────────────────────────────────
     st.markdown("### 🧭 POL Port Performance")
     port_tbl = (filt.groupby("POL Port")
