@@ -86,11 +86,24 @@ if activity_df is not None and map_df is not None:
     col5.metric("Need Improve (>=4d)", f"{need_imp}")
 
     # ── Breakdown Tables ───────────────────────────────────────────────────────
+    def get_perf_rating(avg_delay):
+        if pd.isna(avg_delay):
+            return "Missing"
+        elif avg_delay <= 2:
+            return "Excellent"
+        elif avg_delay < 3:
+            return "Good"
+        elif avg_delay < 4:
+            return "Average"
+        else:
+            return "Need Improvement"
+
     st.subheader("Breakdown by Subordinate")
     sub_df = filt.groupby("subordinate").agg(
         Total_Activities=("Delay (Days)", "count"),
         Average_Delay=("Delay (Days)", "mean")
     ).round(2).reset_index()
+    sub_df["Average_Perf_Rating"] = sub_df["Average_Delay"].apply(get_perf_rating)
     perf_counts = filt.groupby("subordinate")["Performance"].value_counts().unstack(fill_value=0)
     sub_table = sub_df.join(perf_counts, on="subordinate")
     st.dataframe(sub_table.reset_index(drop=True), use_container_width=True)
@@ -100,6 +113,7 @@ if activity_df is not None and map_df is not None:
         Total_Activities=("Delay (Days)", "count"),
         Average_Delay=("Delay (Days)", "mean")
     ).round(2).reset_index()
+    lead_df["Average_Perf_Rating"] = lead_df["Average_Delay"].apply(get_perf_rating)
     lead_counts = filt.groupby("Lead")["Performance"].value_counts().unstack(fill_value=0)
     lead_table = lead_df.join(lead_counts, on="Lead")
     st.dataframe(lead_table.reset_index(drop=True), use_container_width=True)
@@ -109,6 +123,7 @@ if activity_df is not None and map_df is not None:
         Total_Activities=("Delay (Days)", "count"),
         Average_Delay=("Delay (Days)", "mean")
     ).round(2).reset_index()
+    region_df["Average_Perf_Rating"] = region_df["Average_Delay"].apply(get_perf_rating)
     region_counts = filt.groupby("Region")["Performance"].value_counts().unstack(fill_value=0)
     region_table = region_df.join(region_counts, on="Region")
     st.dataframe(region_table.reset_index(drop=True), use_container_width=True)
