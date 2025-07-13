@@ -114,6 +114,22 @@ if activity_df is not None and map_df is not None:
         df["Rating"] = df["Average_Delay"].apply(get_perf_rating)
         st.dataframe(df, use_container_width=True)
 
+    st.markdown("### 🧭 POL Port Performance")
+    port_df = filt.groupby("POL Port").agg(
+        Total_Activities=("Delay (Days)", "count"),
+        Average_Delay=("Delay (Days)", "mean")
+    ).round(2).reset_index()
+    port_df["Rating"] = port_df["Average_Delay"].apply(get_perf_rating)
+    st.dataframe(port_df, use_container_width=True)
+
+    st.markdown("### 🧾 Subordinate + POL Port Performance")
+    combo_df = filt.groupby(["subordinate", "POL Port"]).agg(
+        Total_Activities=("Delay (Days)", "count"),
+        Average_Delay=("Delay (Days)", "mean")
+    ).round(2).reset_index()
+    combo_df["Rating"] = combo_df["Average_Delay"].apply(get_perf_rating)
+    st.dataframe(combo_df, use_container_width=True)
+
     st.markdown("### 📆 Periodic Performance Snapshots")
     col_a, col_b = st.columns(2)
     with col_a:
