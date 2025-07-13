@@ -49,6 +49,11 @@ if activity_df is not None and map_df is not None:
     # ── Merge with Mapping ──────────────────────────────────────────────────────
     merged = activity_df.merge(map_df, how="left", left_on="POL Port", right_on="POL Port")
 
+    # ── Add Period Columns ──────────────────────────────────────────────────────
+    merged["Month"] = merged["Activity Date"].dt.to_period("M")
+    merged["Week"] = merged["Activity Date"].dt.isocalendar().week
+    merged["Date"] = merged["Activity Date"].dt.date
+
     # ── Sidebar Filters ────────────────────────────────────────────────────────
     st.sidebar.header("🔍 Filters")
     region_sel = st.sidebar.multiselect("Region", sorted(merged["Region"].dropna().unique()))
@@ -80,7 +85,7 @@ if activity_df is not None and map_df is not None:
     col4.metric("Average (3<=d<4)", f"{average}")
     col5.metric("Need Improve (>=4d)", f"{need_imp}")
 
-    # ── Performance Breakdown Tables ───────────────────────────────────────────
+    # ── Breakdown Tables ───────────────────────────────────────────────────────
     st.subheader("Breakdown by Subordinate")
     st.dataframe(
         filt.groupby("subordinate")["Performance"].value_counts().unstack(fill_value=0).reset_index(),
@@ -98,6 +103,34 @@ if activity_df is not None and map_df is not None:
         filt.groupby("Region")["Performance"].value_counts().unstack(fill_value=0).reset_index(),
         use_container_width=True,
     )
+
+    # ── Monthly, Weekly, Daily KPIs ────────────────────────────────────────────
+    st.subheader("📅 Monthly Average Performance")
+    monthly_perf = (
+        filt.groupby("Month")["Performance"]
+        .value_counts(normalize=True)
+        .unstack()
+        .fillna(0) * 100
+    ).round(1)
+    st.dataframe(monthly_perf, use_container_width=True)
+
+    st.subheader("📆 Weekly Average Performance")
+    weekly_perf = (
+        filt.groupby("Week")["Performance"]
+        .value_counts(normalize=True)
+        .unstack()
+        .fillna(0) * 100
+    ).round(1)
+    st.dataframe(weekly_perf, use_container_width=True)
+
+    st.subheader("📊 Daily Average Performance (Last 10 Days)")
+    daily_perf = (
+        filt.groupby("Date")["Performance"]
+        .value_counts(normalize=True)
+        .unstack()
+        .fillna(0) * 100
+    ).round(1)
+    st.dataframe(daily_perf.tail(10), use_container_width=True)
 
     # ── Detail Grid ────────────────────────────────────────────────────────────
     st.subheader("Detailed Activity Records")
