@@ -61,7 +61,7 @@ if activity_df is not None and map_df is not None:
     sub_sel = st.sidebar.multiselect("👥 Subordinate", sorted(merged["subordinate"].dropna().unique()))
     port_sel = st.sidebar.multiselect("🛳️ POL Port", sorted(merged["POL Port"].dropna().unique()))
     date_range = st.sidebar.date_input("📅 Select Activity Date Range", [])
-    
+
     filt = merged.copy()
     if region_sel:
         filt = filt[filt["Region"].isin(region_sel)]
@@ -83,7 +83,6 @@ if activity_df is not None and map_df is not None:
     col4.metric("Average (3<=d<4)", (filt["Performance"] == "Average").sum())
     col5.metric("Need Improvement (>=4d)", (filt["Performance"] == "Need Improvement").sum())
 
-    # ── Helper ────────────────────────────────────────────────────────────────
     def get_perf_rating(avg_delay):
         if pd.isna(avg_delay):
             return "Missing"
@@ -96,7 +95,6 @@ if activity_df is not None and map_df is not None:
         else:
             return "Need Improvement"
 
-    # ── Subordinate Table ──────────────────────────────────────────────────────
     st.markdown("### 👥 Subordinate Performance")
     sub_df = filt.groupby("subordinate").agg(
         Total_Activities=("Delay (Days)", "count"),
@@ -105,7 +103,6 @@ if activity_df is not None and map_df is not None:
     sub_df["Rating"] = sub_df["Average_Delay"].apply(get_perf_rating)
     st.dataframe(sub_df, use_container_width=True)
 
-    # ── Lead & Region Breakdown ───────────────────────────────────────────────
     for level in ["Lead", "Region"]:
         st.markdown(f"### 👤 {level} Performance")
         df = filt.groupby(level).agg(
@@ -115,34 +112,33 @@ if activity_df is not None and map_df is not None:
         df["Rating"] = df["Average_Delay"].apply(get_perf_rating)
         st.dataframe(df, use_container_width=True)
 
-    # ── Periodic Summaries ─────────────────────────────────────────────────────
     st.markdown("### 📆 Periodic Performance Snapshots")
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown("#### Monthly")
-        month_perf = filt.groupby("Month")["Performance"].value_counts(normalize=True).unstack().fillna(0) * 100
-        st.dataframe(month_perf.round(1), use_container_width=True)
+        monthly = filt.groupby("Month")["Delay (Days)"].mean().round(2).reset_index()
+        monthly["Rating"] = monthly["Delay (Days)"].apply(get_perf_rating)
+        st.dataframe(monthly.rename(columns={"Delay (Days)": "Avg Delay"}), use_container_width=True)
     with col_b:
         st.markdown("#### Quarterly")
-        qtr_perf = filt.groupby("Quarter")["Performance"].value_counts(normalize=True).unstack().fillna(0) * 100
-        st.dataframe(qtr_perf.round(1), use_container_width=True)
+        qtr = filt.groupby("Quarter")["Delay (Days)"].mean().round(2).reset_index()
+        qtr["Rating"] = qtr["Delay (Days)"].apply(get_perf_rating)
+        st.dataframe(qtr.rename(columns={"Delay (Days)": "Avg Delay"}), use_container_width=True)
 
     col_c, col_d = st.columns(2)
     with col_c:
         st.markdown("#### Weekly")
-        wk_perf = filt.groupby("Week")["Performance"].value_counts(normalize=True).unstack().fillna(0) * 100
-        st.dataframe(wk_perf.round(1), use_container_width=True)
+        wk = filt.groupby("Week")["Delay (Days)"].mean().round(2).reset_index()
+        wk["Rating"] = wk["Delay (Days)"].apply(get_perf_rating)
+        st.dataframe(wk.rename(columns={"Delay (Days)": "Avg Delay"}), use_container_width=True)
     with col_d:
         st.markdown("#### Daily (Last 10 Days)")
-        daily_perf = filt.groupby("Date")["Performance"].value_counts(normalize=True).unstack().fillna(0) * 100
-        st.dataframe(daily_perf.tail(10).round(1), use_container_width=True)
+        daily = filt.groupby("Date")["Delay (Days)"].mean().round(2).reset_index()
+        daily["Rating"] = daily["Delay (Days)"].apply(get_perf_rating)
+        st.dataframe(daily.tail(10).rename(columns={"Delay (Days)": "Avg Delay"}), use_container_width=True)
 
-    # ── Raw Table & Export ─────────────────────────────────────────────────────
-    st.markdown("### 📋 All Filtered Activity Records")
-    st.dataframe(filt, use_container_width=True)
-
-    csv = filt.to_csv(index=False).encode()
-    st.download_button("📥 Download Filtered Data as CSV", csv, "filtered_inventory_kpis.csv", "text/csv")
+    st.markdown("### 📄 Summary Report PDF Download")
+    st.warning("⚠️ This feature is under development. You'll be able to export a boss-ready PDF soon.")
 
 else:
     st.info("⬆️ Please upload both files to begin.")
