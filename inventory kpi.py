@@ -47,11 +47,18 @@ if activity_df is not None and map_df is not None:
 
     activity_df["Performance"] = activity_df["Delay (Days)"].apply(classify)
 
-    # Merge mapping and preserve Company column________
-    merged = activity_df.merge(map_df, how="left", on="POL Port")
+    
+    # ✅ Always keep Company column before merging
     if "Company" in activity_df.columns:
-        merged["Company"] = activity_df["Company"]
+        company_col = activity_df[["Company"]]  # store it before merge
+    else:
+        company_col = None
 
+    merged = activity_df.merge(map_df, how="left", on="POL Port")
+
+    # ✅ Reattach Company column if missing
+    if company_col is not None and "Company" not in merged.columns:
+        merged = pd.concat([company_col, merged.drop(columns="Company", errors="ignore")], axis=1)
 
     merged = activity_df.merge(map_df, how="left", on="POL Port")
     merged["Month"] = merged["Activity Date"].dt.to_period("M")
@@ -166,6 +173,7 @@ if activity_df is not None and map_df is not None:
 
 else:
     st.info("⬆️ Please upload both activity and mapping files to begin.")
+
 
 
 
