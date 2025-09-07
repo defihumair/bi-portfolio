@@ -106,38 +106,37 @@ if activity_df is not None and map_df is not None:
         df["Rating"] = df["Average_Delay"].apply(get_rating)
         st.dataframe(df, use_container_width=True)
 
-# ── POL Port Performance ─────────────────────────────────
-st.markdown("### 🧭 POL Port Performance — Average delay & rating")
-port_tbl = filt.groupby("POL Port").agg(
-    Total_Activities=("Delay (Days)", "count"),
-    Avg_Delay=("Delay (Days)", "mean")
-).round(2).reset_index()
-port_tbl["Rating"] = port_tbl["Avg_Delay"].apply(get_rating)
+    # ── POL Port Performance ─────────────────────────────────
+    st.markdown("### 🧭 POL Port Performance — Average delay & rating")
+    port_tbl = filt.groupby("POL Port").agg(
+        Total_Activities=("Delay (Days)", "count"),
+        Avg_Delay=("Delay (Days)", "mean")
+    ).round(2).reset_index()
+    port_tbl["Rating"] = port_tbl["Avg_Delay"].apply(get_rating)
 
-st.dataframe(port_tbl, use_container_width=True)
+    st.dataframe(port_tbl, use_container_width=True)
 
-# Define custom colors for ratings
-rating_colors = {
-    "Excellent": "green",
-    "Good": "yellowgreen",
-    "Average": "orange",
-    "Need Improvement": "red",
-    "Missing": "gray"
-}
+    # Define custom colors for ratings
+    rating_colors = {
+        "Excellent": "green",
+        "Good": "yellowgreen",
+        "Average": "orange",
+        "Need Improvement": "red",
+        "Missing": "gray"
+    }
 
-# Bar chart with custom colors
-fig = px.bar(
-    port_tbl, 
-    x="POL Port", 
-    y="Avg_Delay", 
-    color="Rating",
-    color_discrete_map=rating_colors,
-    title="Average Delay by POL Port", 
-    labels={"Avg_Delay": "Avg Delay (Days)"}
-)
-fig.update_layout(xaxis_tickangle=-45, height=400)
-st.plotly_chart(fig, use_container_width=True)
-
+    # Bar chart with custom colors
+    fig = px.bar(
+        port_tbl, 
+        x="POL Port", 
+        y="Avg_Delay", 
+        color="Rating",
+        color_discrete_map=rating_colors,
+        title="Average Delay by POL Port", 
+        labels={"Avg_Delay": "Avg Delay (Days)"}
+    )
+    fig.update_layout(xaxis_tickangle=-45, height=400)
+    st.plotly_chart(fig, use_container_width=True)
 
     # ── Subordinate vs POL Port Heatmap ──────────────────────
     st.markdown("### 🔥 Average Delay Heatmap (Subordinate vs POL Port)")
@@ -159,4 +158,5 @@ st.plotly_chart(fig, use_container_width=True)
 
 else:
     st.info("⬆️ Please upload both activity and mapping files to begin.")
+
 
