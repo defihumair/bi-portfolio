@@ -12,7 +12,7 @@ Upload your **activity data** file (Excel/CSV) and **POL-Port mapping** file.
 This dashboard helps you:
 - Track delay between physical activity and system update
 - Evaluate performance by Person, Port, Region, Lead
-- Filter by Date Range, Region, Subordinate, Port
+- Filter by Company, Date Range, Region, Subordinate, Port
 - Visualize average delays with interactive charts and heatmaps
 """)
 
@@ -47,8 +47,15 @@ if activity_df is not None and map_df is not None:
 
     activity_df["Performance"] = activity_df["Delay (Days)"].apply(classify)
 
-
+    # ── Merge mapping with Company column ──────────────────────
     merged = activity_df.merge(map_df, how="left", on="POL Port")
+    
+    # Handle potential Company_x / Company_y issue
+    if "Company_y" in merged.columns:
+        merged.rename(columns={"Company_y": "Company"}, inplace=True)
+    elif "Company_x" in merged.columns:
+        merged.rename(columns={"Company_x": "Company"}, inplace=True)
+
     merged["Month"] = merged["Activity Date"].dt.to_period("M")
     merged["Quarter"] = merged["Activity Date"].dt.to_period("Q")
     merged["Week"] = merged["Activity Date"].dt.isocalendar().week
@@ -58,13 +65,16 @@ if activity_df is not None and map_df is not None:
 
     # ── Filters ───────────────────────────────────────────────
     st.sidebar.header("🔍 Filters")
+    company_f = st.sidebar.multiselect("🏢 Company", sorted(merged["Company"].dropna().unique()))
     region_f = st.sidebar.multiselect("🌍 Region", sorted(merged["Region"].dropna().unique()))
     lead_f = st.sidebar.multiselect("👤 Lead", sorted(merged["Lead"].dropna().unique()))
     sub_f = st.sidebar.multiselect("👥 Subordinate", sorted(merged["subordinate"].dropna().unique()))
     port_f = st.sidebar.multiselect("🛳️ POL Port", sorted(merged["POL Port"].dropna().unique()))
     dates = st.sidebar.date_input("📅 Activity Date Range", [])
 
+    # Apply filters
     filt = merged.copy()
+    if company_f: filt = filt[filt["Company"].isin(company_f)]
     if region_f: filt = filt[filt["Region"].isin(region_f)]
     if lead_f: filt = filt[filt["Lead"].isin(lead_f)]
     if sub_f: filt = filt[filt["subordinate"].isin(sub_f)]
@@ -159,6 +169,7 @@ if activity_df is not None and map_df is not None:
 
 else:
     st.info("⬆️ Please upload both activity and mapping files to begin.")
+
 
 
 
