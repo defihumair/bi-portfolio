@@ -160,21 +160,47 @@ if activity_df is not None and map_df is not None:
                          title="Subordinate vs POL Port — Avg Delay Heatmap")
         st.plotly_chart(heat, use_container_width=True)
 
-    # ── Daily Trend Chart ─────────────────────────────────────
-    st.markdown("### 📊 Daily Average Delay Trend")
-    trend = filt.groupby("Date")["Delay (Days)"].mean().round(2).reset_index()
+    # ── Daily Trend Analysis with Insights ─────────────────────────────────────
+st.markdown("### 📊 Daily Average Delay Trend with Insights")
+
+# Calculate daily average delay
+trend = filt.groupby("Date")["Delay (Days)"].mean().round(2).reset_index()
+
+if not trend.empty:
+    # 1. Detect peaks (top 10% delay days)
+    threshold = trend["Delay (Days)"].quantile(0.9)
+    peaks = trend[trend["Delay (Days)"] >= threshold]
+
+    # 2. Weekday analysis
+    trend["Weekday"] = pd.to_datetime(trend["Date"]).dt.day_name()
+    weekday_avg = trend.groupby("Weekday")["Delay (Days)"].mean().round(2).reindex(
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    )
+
+    # 3. Plot daily delay trend with peaks
     line = px.line(trend, x="Date", y="Delay (Days)", markers=True,
-                   title="Daily Avg Delay Trend", labels={"Delay (Days)": "Avg Delay"})
+                   title="Daily Avg Delay Trend with Peaks",
+                   labels={"Delay (Days)": "Avg Delay"})
+
+    for i, row in peaks.iterrows():
+        line.add_annotation(x=row["Date"], y=row["Delay (Days)"],
+                            text="Peak", showarrow=True, arrowhead=2, 
+                            yshift=10, font=dict(color="red"))
+
     st.plotly_chart(line, use_container_width=True)
 
+    # 4. Weekday bar chart to see patterns
+    bar = px.bar(weekday_avg, x=weekday_avg.index, y="Delay (Days)",
+                 title="Average Delay by Weekday",
+                 labels={"Weekday": "Day", "Delay (Days)": "Avg Delay"})
+    st.plotly_chart(bar, use_container_width=True)
+
+    # 5. Insights summary
+    st.subheader("🔎 Insights")
+    st.markdown(f"""
+    - **Peak Delay Days**: {', '.join(peaks['Date'].astype(str).tolist())}
+    - **Worst Weekday**: {weekday_avg.idxmax()} (Avg Delay: {weekday_avg.max()} Days)
+    - **Best Weekday**: {weekday_avg.idxmin()} (Avg Delay: {weekday_avg.min()} Days)
+    """)
 else:
-    st.info("⬆️ Please upload both activity and mapping files to begin.")
-
-
-
-
-
-
-
-
-
+    st.warning("No data available for daily trend analysis.")
