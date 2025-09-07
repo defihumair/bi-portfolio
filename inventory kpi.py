@@ -47,18 +47,6 @@ if activity_df is not None and map_df is not None:
 
     activity_df["Performance"] = activity_df["Delay (Days)"].apply(classify)
 
-    
-    # ✅ Always keep Company column before merging
-    if "Company" in activity_df.columns:
-        company_col = activity_df[["Company"]]  # store it before merge
-    else:
-        company_col = None
-
-    merged = activity_df.merge(map_df, how="left", on="POL Port")
-
-    # ✅ Reattach Company column if missing
-    if company_col is not None and "Company" not in merged.columns:
-        merged = pd.concat([company_col, merged.drop(columns="Company", errors="ignore")], axis=1)
 
     merged = activity_df.merge(map_df, how="left", on="POL Port")
     merged["Month"] = merged["Activity Date"].dt.to_period("M")
@@ -70,7 +58,6 @@ if activity_df is not None and map_df is not None:
 
     # ── Filters ───────────────────────────────────────────────
     st.sidebar.header("🔍 Filters")
-    company_f = st.sidebar.multiselect("🏢 Company", sorted(merged["Company"].dropna().unique()))
     region_f = st.sidebar.multiselect("🌍 Region", sorted(merged["Region"].dropna().unique()))
     lead_f = st.sidebar.multiselect("👤 Lead", sorted(merged["Lead"].dropna().unique()))
     sub_f = st.sidebar.multiselect("👥 Subordinate", sorted(merged["subordinate"].dropna().unique()))
@@ -78,7 +65,6 @@ if activity_df is not None and map_df is not None:
     dates = st.sidebar.date_input("📅 Activity Date Range", [])
 
     filt = merged.copy()
-    if company_f: filt = filt[filt["Company"].isin(company_f)]
     if region_f: filt = filt[filt["Region"].isin(region_f)]
     if lead_f: filt = filt[filt["Lead"].isin(lead_f)]
     if sub_f: filt = filt[filt["subordinate"].isin(sub_f)]
@@ -173,6 +159,7 @@ if activity_df is not None and map_df is not None:
 
 else:
     st.info("⬆️ Please upload both activity and mapping files to begin.")
+
 
 
 
