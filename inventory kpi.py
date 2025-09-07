@@ -57,6 +57,7 @@ if activity_df is not None and map_df is not None:
 
     # ── Filters ───────────────────────────────────────────────
     st.sidebar.header("🔍 Filters")
+    company_f = st.sidebar.multiselect("🏢 Company", sorted(merged["Company"].dropna().unique()))
     region_f = st.sidebar.multiselect("🌍 Region", sorted(merged["Region"].dropna().unique()))
     lead_f = st.sidebar.multiselect("👤 Lead", sorted(merged["Lead"].dropna().unique()))
     sub_f = st.sidebar.multiselect("👥 Subordinate", sorted(merged["subordinate"].dropna().unique()))
@@ -64,6 +65,7 @@ if activity_df is not None and map_df is not None:
     dates = st.sidebar.date_input("📅 Activity Date Range", [])
 
     filt = merged.copy()
+    if company_f: filt = filt[filt["Company"].isin(company_f)]
     if region_f: filt = filt[filt["Region"].isin(region_f)]
     if lead_f: filt = filt[filt["Lead"].isin(lead_f)]
     if sub_f: filt = filt[filt["subordinate"].isin(sub_f)]
@@ -158,5 +160,6 @@ if activity_df is not None and map_df is not None:
 
 else:
     st.info("⬆️ Please upload both activity and mapping files to begin.")
+
 
 
