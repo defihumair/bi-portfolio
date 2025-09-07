@@ -47,6 +47,12 @@ if activity_df is not None and map_df is not None:
 
     activity_df["Performance"] = activity_df["Delay (Days)"].apply(classify)
 
+    # Merge mapping and preserve Company column
+    merged = activity_df.merge(map_df, how="left", on="POL Port")
+        if "Company" in activity_df.columns:
+    merged["Company"] = activity_df["Company"]
+
+
     merged = activity_df.merge(map_df, how="left", on="POL Port")
     merged["Month"] = merged["Activity Date"].dt.to_period("M")
     merged["Quarter"] = merged["Activity Date"].dt.to_period("Q")
@@ -160,6 +166,7 @@ if activity_df is not None and map_df is not None:
 
 else:
     st.info("⬆️ Please upload both activity and mapping files to begin.")
+
 
 
 
