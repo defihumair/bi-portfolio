@@ -48,7 +48,7 @@ if activity_df is not None and map_df is not None:
     activity_df["Performance"] = activity_df["Delay (Days)"].apply(classify)
 
     # ── Merge mapping with Company column ──────────────────────
-    merged = activity_df.merge(map_df, how="left", on="POL Port")
+    merged = activity_df.merge(map_df, how="left", on=["Company", "POL Port"])
     
     # Handle potential Company_x / Company_y issue
     if "Company_y" in merged.columns:
@@ -169,6 +169,7 @@ if activity_df is not None and map_df is not None:
 
 else:
     st.info("⬆️ Please upload both activity and mapping files to begin.")
+
 
 
 
