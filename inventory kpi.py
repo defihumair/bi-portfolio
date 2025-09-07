@@ -204,3 +204,78 @@ if not trend.empty:
     """)
 else:
     st.warning("No data available for daily trend analysis.")
+    
+# ── Additional KPI Visualizations ──────────────────────────────
+st.markdown("## 📊 Additional KPI Insights")
+
+# 1️⃣ Delay Distribution (Histogram + Boxplot)
+st.markdown("### ⏱️ Delay Distribution")
+if not filt.empty:
+    hist = px.histogram(
+        filt, 
+        x="Delay (Days)", 
+        nbins=20, 
+        title="Distribution of Delay Days",
+        labels={"Delay (Days)": "Delay in Days"},
+        color_discrete_sequence=["teal"]
+    )
+    st.plotly_chart(hist, use_container_width=True)
+
+    box = px.box(
+        filt,
+        y="Delay (Days)",
+        points="outliers",
+        title="Boxplot of Delays — Identify Outliers",
+        labels={"Delay (Days)": "Delay in Days"}
+    )
+    st.plotly_chart(box, use_container_width=True)
+else:
+    st.warning("No data available for Delay Distribution.")
+
+# 2️⃣ Workload vs Performance (Total Activities vs Avg Delay)
+st.markdown("### ⚡ Workload vs Performance")
+if not filt.empty:
+    workload_df = filt.groupby("subordinate").agg(
+        Total_Activities=("Delay (Days)", "count"),
+        Avg_Delay=("Delay (Days)", "mean")
+    ).reset_index()
+
+    scatter = px.scatter(
+        workload_df, x="Total_Activities", y="Avg_Delay",
+        size="Total_Activities", color="Avg_Delay",
+        color_continuous_scale="RdYlGn_r",
+        title="Workload vs Average Delay",
+        labels={"Total_Activities": "Number of Activities", "Avg_Delay": "Average Delay (Days)"},
+        hover_data=["subordinate"]
+    )
+    st.plotly_chart(scatter, use_container_width=True)
+else:
+    st.warning("No data available for Workload vs Performance.")
+
+# 3️⃣ SLA Breach Monitoring (Gauge + Pie)
+st.markdown("### 📈 SLA Breach Monitoring")
+if not filt.empty:
+    sla_days = 2  # SLA threshold in days
+    total_acts = len(filt)
+    within_sla = (filt["Delay (Days)"] <= sla_days).sum()
+    breached = total_acts - within_sla
+    sla_compliance = round((within_sla / total_acts) * 100, 2) if total_acts > 0 else 0
+
+    # Pie chart for SLA compliance
+    sla_df = pd.DataFrame({
+        "Status": ["Within SLA", "Breached"],
+        "Count": [within_sla, breached]
+    })
+
+    pie = px.pie(
+        sla_df, names="Status", values="Count",
+        title=f"SLA Compliance (<= {sla_days} Days)",
+        color="Status",
+        color_discrete_map={"Within SLA": "green", "Breached": "red"}
+    )
+    st.plotly_chart(pie, use_container_width=True)
+
+    st.metric("SLA Compliance %", f"{sla_compliance}%")
+else:
+    st.warning("No data available for SLA Monitoring.")
+
