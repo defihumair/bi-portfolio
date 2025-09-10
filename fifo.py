@@ -3,7 +3,7 @@ import pandas as pd
 from io import BytesIO
 
 st.set_page_config(page_title="🚢 FIFO Compliance Analyser", layout="wide")
-st.title("🚢 FIFO Compliance Analyser – Jebel Ali / MYT")
+st.title("🚢 FIFO Compliance Analyser")
 
 # ------------------------------
 # 1 ▸ Upload & sheet selector
@@ -131,3 +131,4 @@ if uploaded_file:
         st.dataframe(full_df, use_container_width=True)
 else:
     st.info("👈 Upload an Excel file to begin analysis")
+
