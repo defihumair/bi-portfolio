@@ -42,10 +42,16 @@
     }
     .project {
       background-color: white;
-      padding: 1rem;
-      margin-bottom: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
       border-left: 5px solid #003366;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    .project img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-bottom: 1rem;
     }
     .project h3 {
       margin-top: 0;
@@ -62,6 +68,9 @@
       padding: 0.5rem 1rem;
       border-radius: 20px;
       text-decoration: none;
+    }
+    .contact a:hover, .skills span:hover {
+      background-color: #0055aa;
     }
     footer {
       text-align: center;
@@ -95,24 +104,19 @@
     <section class="section">
       <h2>Portfolio Projects</h2>
 
+      <!-- Inventory KPI Project -->
       <div class="project">
-        <h3>📊 Container Movement Dashboard (Power BI)</h3>
-        <p>Visualized 400+ container activities for FIFO tracking and ageing. Enabled real-time decision making and reduced detention penalties.</p>
-        <p><strong>Tools:</strong> Power BI, Excel, Pivot Tables</p>
+        <img src="assets/inventory-kpi.png" alt="Inventory KPI Dashboard Screenshot">
+        <h3>📦 Inventory KPI Dashboard</h3>
+        <p><strong>Tools:</strong> Python (Streamlit, Pandas, Plotly), Excel/CSV</p>
+        <p><strong>Problem:</strong> Teams faced delays in updating system vs physical activities, leading to SLA breaches.</p>
+        <p><strong>Solution:</strong> Built an interactive Streamlit dashboard with KPIs, filters, and SLA compliance tracking.</p>
+        <p><strong>Outcome:</strong> Reduced SLA breaches by <b>30%</b>, improved accountability across regions, and enabled daily leadership insights.</p>
+        <a href="https://your-streamlit-link.streamlit.app" target="_blank" style="display:inline-block; margin-top:10px; padding:10px 15px; background:#0078ff; color:white; border-radius:8px; text-decoration:none;">
+          🚀 View Live App
+        </a>
       </div>
 
-      <div class="project">
-        <h3>🧮 Streamlit App: Agent Container Assignment</h3>
-        <p>Built a Python app that recommends agents based on container availability and ageing logic. Used in operations planning.</p>
-        <p><strong>Tools:</strong> Python, Pandas, Streamlit</p>
-        <p><a href="https://defihumair-osl-project.streamlit.app/" target="_blank">🌐 View Live App</a></p>
-      </div>
-
-      <div class="project">
-        <h3>📦 Trade Planning – Jebel Ali Storage Port</h3>
-        <p>Automated free vs chargeable day calculations for empty containers using Excel and Python logic based on double tariff rules.</p>
-        <p><strong>Tools:</strong> Excel, Python, Shipping Rules</p>
-      </div>
     </section>
 
     <section class="section">
