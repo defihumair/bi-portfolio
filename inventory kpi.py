@@ -89,6 +89,17 @@ if activity_df is not None and map_df is not None:
         elif avg < 4: return "Average"
         else: return "Need Improvement"
 
+    # ── Only show charts when there is data ────────────────────
+        if not filt.empty:
+            st.markdown("### 📊 Daily Average Delay Trend")
+            trend = filt.groupby("Date")["Delay (Days)"].mean().round(2).reset_index()
+            line = px.line(trend, x="Date", y="Delay (Days)", markers=True,
+                           title="Daily Avg Delay Trend", labels={"Delay (Days)": "Avg Delay"})
+            st.plotly_chart(line, use_container_width=True)
+
+    else:
+        st.info("⬆️ Please upload both activity and mapping files to begin.")
+    
     # ── Summary KPIs ──────────────────────────────────────────
     st.markdown("### 🚀 Overall Performance Summary")
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -278,4 +289,5 @@ if not filt.empty:
     st.metric("SLA Compliance %", f"{sla_compliance}%")
 else:
     st.warning("No data available for SLA Monitoring.")
+
 
