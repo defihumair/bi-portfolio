@@ -89,25 +89,9 @@ with tab2:
     # Filter future dates based on selection
     future_filtered = [d for d in future_dates if (d - today).days <= limit_days]
 
+    # Only show the predicted period start dates
     for d in future_filtered:
         st.write(f"📅 **Next Period Starts:** {d.strftime('%d %B %Y')}")
-
-    st.divider()
-
-    # ---- SAFE WINDOW ----
-    st.subheader("🟢 Safest Days")
-    st.caption("Note: The safest time is the 'Luteal Phase' (a few days after ovulation until the next period). Calendar methods are never 100% risk-free.")
-    
-    for d in future_filtered:
-        # Ovulation is roughly 14 days before the next period
-        ovulation_day = d - timedelta(days=14)
-        
-        # The fertile window ends about 2 days after ovulation.
-        # So the "Safe Window" starts 3 days after ovulation and ends the day before her next period.
-        safe_start = ovulation_day + timedelta(days=3)
-        safe_end = d - timedelta(days=1)
-        
-        st.write(f"🛡️ **{safe_start.strftime('%d %b')} → {safe_end.strftime('%d %b')}**")
 
 st.divider()
 st.caption("Tracking active and updated securely.")
