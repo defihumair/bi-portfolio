@@ -83,6 +83,7 @@
   .iac-opt { border:1.5px solid var(--border); border-radius:var(--radius); padding:10px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; background:var(--surface); transition:border-color .12s, background .12s; }
   .iac-opt:hover { border-color:var(--border2); }
   .iac-opt.selected { border-color:var(--accent); background:var(--accent-bg); }
+  .iac-opt.full-width { grid-column: 1 / -1; }
   .iac-opt-icon { width:32px; height:32px; border-radius:8px; background:var(--surface2); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:16px; }
   .iac-opt.selected .iac-opt-icon { background:var(--accent-light); }
   .iac-opt-icon svg { width:16px; height:16px; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
@@ -119,6 +120,7 @@
   .summary-key { font-size:13px; color:var(--text2); }
   .summary-val { font-size:13px; font-weight:500; font-family:'DM Mono',monospace; }
   .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; font-family:'DM Sans',sans-serif; }
+  .badge-neutral { background:var(--surface2); color:var(--text2); border:1px solid var(--border2); }
   .badge-danger { background:#FEF2F2; color:var(--danger); }
   .badge-warning { background:#FFFBEB; color:var(--warning); }
   .badge-success { background:var(--success-bg); color:var(--success); }
@@ -241,6 +243,10 @@
       <div class="iac-section">
         <div class="iac-label">🔧 Action taken on this light</div>
         <div class="iac-options" id="action-options">
+          <div class="iac-opt full-width selected" id="opt-report-only" onclick="selectAction(this, null, null)">
+            <div class="iac-opt-icon" style="font-size:18px">📝</div>
+            <div class="iac-opt-text"><strong>Report Only</strong><span>Just logging the fault</span></div>
+          </div>
           <div class="iac-opt" onclick="selectAction(this,'Repaired Light','badge-warning')">
             <div class="iac-opt-icon" style="font-size:18px">🔧</div>
             <div class="iac-opt-text"><strong>Repaired Light</strong><span>Fixed in place</span></div>
@@ -278,8 +284,6 @@
             <option value="">Select role</option>
             <option>Ops</option>
             <option>Admin</option>
-            <option>Maintenance</option>
-            <option>Supervisor</option>
           </select>
         </div>
         <div class="field">
@@ -493,20 +497,39 @@ function selectIssue(el, label, severity) {
   state.issueSeverity = severity;
   checkStep3();
 }
+
 function selectAction(el, label, badge) {
   document.querySelectorAll('#action-options .iac-opt').forEach(x => x.classList.remove('selected'));
   el.classList.add('selected');
   state.action = label;
   state.actionBadge = badge;
-  document.getElementById('cost-section').style.display = 'block';
+  
+  if (label) {
+    // A specific repair action was chosen, require cost
+    document.getElementById('cost-section').style.display = 'block';
+  } else {
+    // "Report Only" was chosen, hide cost
+    document.getElementById('cost-section').style.display = 'none';
+    document.getElementById('cost-input').value = '';
+  }
+  
   checkStep3();
 }
 
 // ── Validate step 3 ────────────────────────────────────────
 function checkStep3() {
-  const ok = state.issue && state.action
-    && document.getElementById('name-input').value.trim()
-    && document.getElementById('role-input').value;
+  const name = document.getElementById('name-input').value.trim();
+  const role = document.getElementById('role-input').value;
+  const cost = document.getElementById('cost-input').value.trim();
+  
+  // Base requirement: Issue, Name, Role
+  let ok = state.issue && name && role;
+  
+  // If an action (Repair/New Light) is selected, Cost becomes strictly mandatory
+  if (state.action) {
+     if (!cost) ok = false; 
+  }
+  
   document.getElementById('btn-3').disabled = !ok;
 }
 
@@ -526,7 +549,12 @@ function fillSummary() {
 
   const iBadge = state.issueSeverity === 'danger' ? 'badge-danger' : 'badge-warning';
   document.getElementById('s-issue-badge').innerHTML  = `<span class="badge ${iBadge}">${state.issue}</span>`;
-  document.getElementById('s-action-badge').innerHTML = `<span class="badge ${state.actionBadge}">${state.action}</span>`;
+  
+  if (state.action) {
+    document.getElementById('s-action-badge').innerHTML = `<span class="badge ${state.actionBadge}">${state.action}</span>`;
+  } else {
+    document.getElementById('s-action-badge').innerHTML = `<span class="badge badge-neutral">Report Only</span>`;
+  }
 
   const hasCost = cost !== '';
   document.getElementById('cost-summary-row').style.display = hasCost ? 'flex' : 'none';
@@ -562,7 +590,7 @@ function submitForm() {
     Zone:       state.shed,
     Light_ID:   state.light,
     Issue:      state.issue,
-    Action:     state.action,
+    Action:     state.action || 'Report Only',
     Cost_PKR:   cost ? Number(cost) : '',
     Name:       name,
     Role:       role,
@@ -578,7 +606,7 @@ function submitForm() {
     document.getElementById('done-light-id').textContent = state.light;
     document.getElementById('done-shed').textContent     = state.shed;
     document.getElementById('done-issue').textContent    = state.issue;
-    document.getElementById('done-action').textContent   = state.action;
+    document.getElementById('done-action').textContent   = state.action || 'Report Only';
     document.getElementById('done-name').textContent     = name;
     document.getElementById('done-time').textContent     = ts;
     const hasCost = cost !== '';
@@ -602,6 +630,10 @@ function submitForm() {
 function resetForm() {
   state = { shed: null, light: null, issue: null, issueSeverity: null, action: null, actionBadge: null };
   document.querySelectorAll('.shed-tile,.iac-opt').forEach(t => t.classList.remove('selected'));
+  
+  // Re-select "Report Only" by default
+  document.getElementById('opt-report-only').classList.add('selected');
+  
   ['name-input','role-input','cost-input','notes-input'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cost-section').style.display = 'none';
   ['btn-1','btn-2','btn-3'].forEach(id => document.getElementById(id).disabled = true);
