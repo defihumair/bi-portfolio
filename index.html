@@ -1,177 +1,621 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Muhammad Humair Qureshi – BI Portfolio</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f7fa;
-      margin: 0;
-      padding: 0;
-      color: #333;
-    }
-    header {
-      background-color: #003366;
-      color: white;
-      padding: 2rem;
-      text-align: center;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 2.5rem;
-    }
-    header p {
-      margin-top: 0.5rem;
-      font-size: 1.2rem;
-    }
-    .container {
-      padding: 2rem;
-      max-width: 1000px;
-      margin: auto;
-    }
-    .section {
-      margin-bottom: 3rem;
-    }
-    .section h2 {
-      border-bottom: 2px solid #003366;
-      padding-bottom: 0.5rem;
-      margin-bottom: 1rem;
-      color: #003366;
-    }
-    .project {
-      background-color: white;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      border-left: 5px solid #003366;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      border-radius: 8px;
-    }
-    .project img {
-      max-width: 100%;
-      border-radius: 10px;
-      margin-bottom: 1rem;
-    }
-    .project h3 {
-      margin-top: 0;
-      color: #003366;
-    }
-    .skills, .contact {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .skills span, .contact a {
-      background-color: #003366;
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      text-decoration: none;
-    }
-    .contact a:hover, .skills span:hover {
-      background-color: #0055aa;
-    }
-    footer {
-      text-align: center;
-      padding: 1rem;
-      background-color: #003366;
-      color: white;
-    }
-    @media (max-width: 600px) {
-      .skills, .contact {
-        flex-direction: column;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse Light Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F5F4F0; --surface: #FFFFFF; --surface2: #F0EFE9;
+    --border: #E2E0D8; --border2: #CCCAC0;
+    --text: #1A1916; --text2: #6B6960; --text3: #A09D94;
+    --accent: #1C4ED8; --accent-bg: #EEF2FF; --accent-light: #DBEAFE;
+    --success: #0F6E56; --success-bg: #ECFDF5;
+    --danger: #C13A2B; --warning: #B45309;
+    --radius: 10px; --radius-lg: 16px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+  }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+  .app-header { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+  .app-logo { width:32px; height:32px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; }
+  .app-logo svg { width:18px; height:18px; fill:none; stroke:white; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .app-title { font-size:15px; font-weight:600; }
+  .app-subtitle { font-size:12px; color:var(--text2); }
+  .progress-bar-wrap { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 20px 14px; }
+  .progress-steps { display:flex; align-items:center; }
+  .ps-item { display:flex; align-items:center; gap:6px; flex:1; }
+  .ps-item:last-child { flex:none; }
+  .ps-dot { width:24px; height:24px; border-radius:50%; background:var(--surface2); border:1.5px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--text3); flex-shrink:0; transition:all .2s; }
+  .ps-dot.active { background:var(--accent); border-color:var(--accent); color:white; }
+  .ps-dot.done { background:var(--success); border-color:var(--success); color:white; }
+  .ps-label { font-size:11px; color:var(--text3); white-space:nowrap; }
+  .ps-label.active { color:var(--accent); font-weight:500; }
+  .ps-label.done { color:var(--success); }
+  .ps-line { flex:1; height:1.5px; background:var(--border); margin:0 8px; transition:background .3s; }
+  .ps-line.done { background:var(--success); }
+  .main { flex:1; padding:20px 16px 40px; max-width:520px; margin:0 auto; width:100%; }
+  .step { display:none; animation:fadeUp .22s ease; }
+  .step.active { display:block; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .step-heading { margin-bottom:20px; }
+  .step-heading h2 { font-size:20px; font-weight:600; line-height:1.3; }
+  .step-heading p { font-size:14px; color:var(--text2); margin-top:4px; }
+
+  /* Shed grid */
+  .shed-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .shed-tile { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:16px; cursor:pointer; transition:border-color .15s,box-shadow .15s; display:flex; flex-direction:column; gap:4px; }
+  .shed-tile:hover { border-color:var(--border2); box-shadow:var(--shadow); }
+  .shed-tile.selected { border-color:var(--accent); background:var(--accent-bg); box-shadow:0 0 0 3px rgba(28,78,216,0.08); }
+  .shed-tile-icon { font-size:20px; margin-bottom:4px; }
+  .shed-tile-name { font-size:15px; font-weight:600; }
+  .shed-tile-count { font-size:12px; color:var(--text2); }
+  .shed-tile.selected .shed-tile-count { color:var(--accent); }
+
+  /* Search */
+  .search-wrap { position:relative; margin-bottom:12px; }
+  .search-wrap svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; stroke:var(--text3); stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .search-input { width:100%; padding:10px 12px 10px 36px; border:1.5px solid var(--border); border-radius:var(--radius); font-family:'DM Sans',sans-serif; font-size:14px; background:var(--surface); color:var(--text); outline:none; transition:border-color .15s; }
+  .search-input:focus { border-color:var(--accent); }
+  .search-input::placeholder { color:var(--text3); }
+
+  /* Light grid */
+  .lights-scroll { max-height:300px; overflow-y:auto; padding-right:2px; }
+  .lights-scroll::-webkit-scrollbar { width:4px; }
+  .lights-scroll::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+  .row-label { font-size:11px; font-weight:600; letter-spacing:.06em; color:var(--text3); text-transform:uppercase; padding:8px 0 4px; border-bottom:1px solid var(--border); margin-bottom:6px; }
+  .lights-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:6px; }
+  .light-tile { background:var(--surface); border:1.5px solid var(--border); border-radius:8px; padding:8px 4px; cursor:pointer; text-align:center; transition:border-color .12s,background .12s; }
+  .light-tile:hover { border-color:var(--border2); }
+  .light-tile.selected { border-color:var(--accent); background:var(--accent-bg); }
+  .light-tile span { font-family:'DM Mono',monospace; font-size:10px; font-weight:500; color:var(--text); display:block; }
+  .light-tile.selected span { color:var(--accent); }
+  .no-results { padding:24px 0; text-align:center; color:var(--text3); font-size:14px; }
+
+  /* Issue + Action combined card */
+  .issue-action-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:14px; }
+  .iac-section { padding:14px 16px; }
+  .iac-section + .iac-section { border-top:1px solid var(--border); }
+  .iac-label { font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--text3); margin-bottom:10px; }
+  .iac-options { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .iac-opt { border:1.5px solid var(--border); border-radius:var(--radius); padding:10px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; background:var(--surface); transition:border-color .12s, background .12s; }
+  .iac-opt:hover { border-color:var(--border2); }
+  .iac-opt.selected { border-color:var(--accent); background:var(--accent-bg); }
+  .iac-opt-icon { width:32px; height:32px; border-radius:8px; background:var(--surface2); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:16px; }
+  .iac-opt.selected .iac-opt-icon { background:var(--accent-light); }
+  .iac-opt-icon svg { width:16px; height:16px; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .iac-opt-text strong { display:block; font-size:13px; font-weight:600; }
+  .iac-opt-text span { display:block; font-size:11px; color:var(--text2); margin-top:1px; }
+  .iac-opt.selected .iac-opt-text strong { color:var(--accent); }
+
+  /* Cost section */
+  #cost-section { margin-bottom:14px; }
+  .cost-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:14px 16px; }
+  .cost-card-label { font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--text3); margin-bottom:10px; }
+  .cost-wrap { display:flex; align-items:stretch; }
+  .cost-prefix { display:flex; align-items:center; padding:11px 12px; background:var(--surface2); border:1.5px solid var(--border); border-right:none; border-radius:var(--radius) 0 0 var(--radius); font-size:13px; font-weight:600; color:var(--text2); }
+  .cost-input { flex:1; padding:11px 14px; border:1.5px solid var(--border); border-radius:0 var(--radius) var(--radius) 0; font-family:'DM Sans',sans-serif; font-size:14px; background:var(--surface); color:var(--text); outline:none; transition:border-color .15s; -webkit-appearance:none; }
+  .cost-input:focus { border-color:var(--accent); }
+
+  /* Reporter card */
+  .reporter-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:14px 16px; }
+  .reporter-card-label { font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--text3); margin-bottom:10px; }
+  .fields { display:flex; flex-direction:column; gap:12px; }
+  .field label { display:block; font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--text2); margin-bottom:5px; }
+  .field input, .field select { width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:var(--radius); font-family:'DM Sans',sans-serif; font-size:14px; background:var(--surface); color:var(--text); outline:none; transition:border-color .15s; -webkit-appearance:none; }
+  .field input:focus, .field select:focus { border-color:var(--accent); }
+  .field select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A09D94' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+
+  /* Summary */
+  .summary-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:16px; }
+  .summary-header { background:var(--surface2); padding:12px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); }
+  .summary-header svg { width:16px; height:16px; stroke:var(--text2); stroke-width:2; fill:none; }
+  .summary-header span { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--text2); }
+  .summary-body { padding:4px 0; }
+  .summary-row { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); }
+  .summary-row:last-child { border-bottom:none; }
+  .summary-key { font-size:13px; color:var(--text2); }
+  .summary-val { font-size:13px; font-weight:500; font-family:'DM Mono',monospace; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; font-family:'DM Sans',sans-serif; }
+  .badge-danger { background:#FEF2F2; color:var(--danger); }
+  .badge-warning { background:#FFFBEB; color:var(--warning); }
+  .badge-success { background:var(--success-bg); color:var(--success); }
+  .badge-blue { background:var(--accent-bg); color:var(--accent); }
+
+  /* Buttons */
+  .btn-row { display:flex; gap:10px; margin-top:20px; }
+  .btn-primary { flex:1; background:var(--accent); color:white; border:none; border-radius:var(--radius); padding:13px 20px; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:opacity .15s,transform .1s; }
+  .btn-primary:hover { opacity:.9; }
+  .btn-primary:active { transform:scale(.98); }
+  .btn-primary:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+  .btn-ghost { background:var(--surface); color:var(--text); border:1.5px solid var(--border); border-radius:var(--radius); padding:13px 18px; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:500; cursor:pointer; transition:border-color .15s; }
+  .btn-ghost:hover { border-color:var(--border2); }
+
+  /* Success */
+  .success-screen { text-align:center; padding:40px 20px; }
+  .success-check { width:72px; height:72px; border-radius:50%; background:var(--success-bg); border:2px solid #A7F3D0; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; animation:popIn .4s cubic-bezier(.175,.885,.32,1.275); }
+  @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+  .success-check svg { width:32px; height:32px; stroke:var(--success); stroke-width:2.5; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .success-screen h2 { font-size:22px; font-weight:600; margin-bottom:8px; }
+  .success-screen p { font-size:14px; color:var(--text2); margin-bottom:6px; }
+  .success-light-badge { display:inline-block; background:var(--accent-bg); color:var(--accent); font-family:'DM Mono',monospace; font-size:16px; font-weight:500; padding:6px 16px; border-radius:8px; margin:8px 0 24px; border:1px solid var(--accent-light); }
+  .success-meta { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 16px; text-align:left; margin-bottom:20px; }
+  .success-meta-row { display:flex; justify-content:space-between; padding:6px 0; font-size:13px; border-bottom:1px solid var(--border); }
+  .success-meta-row:last-child { border-bottom:none; }
+  .success-meta-row span:first-child { color:var(--text2); }
+  .success-meta-row span:last-child { font-weight:500; }
+
+  /* Loading */
+  .loading-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:14px; }
+  .spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .loading-screen p { font-size:14px; color:var(--text2); }
+
+  /* Submitting overlay */
+  .submitting-overlay { position:fixed; inset:0; background:rgba(245,244,240,0.85); backdrop-filter:blur(4px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; z-index:100; }
+  .submitting-overlay p { font-size:15px; font-weight:500; color:var(--text); }
+
+  @media(max-width:380px) { .lights-grid{grid-template-columns:repeat(3,1fr)} .shed-grid{grid-template-columns:1fr} .iac-options{grid-template-columns:1fr} }
+</style>
 </head>
 <body>
 
-  <header>
-    <h1>Muhammad Humair Qureshi</h1>
-    <p>Business Intelligence Analyst | Shipping & Trade Data | Karachi, Pakistan</p>
-  </header>
+<div class="app-header">
+  <div class="app-logo">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+  </div>
+  <div>
+    <div class="app-title">Light Report &amp; Action</div>
+    <div class="app-subtitle">Warehouse Management System</div>
+  </div>
+</div>
 
-  <div class="container">
+<div class="progress-bar-wrap" id="progress-wrap">
+  <div class="progress-steps" id="progress-steps"></div>
+</div>
 
-    <section class="section">
-      <h2>About Me</h2>
-      <p>
-        I have an entrepreneurial spirit with a problem-solving attitude and a passion for diversifying into high-impact areas. Strong in research and analytics with a keen interest in Data & Business Analytics.
-      </p>
-    </section>
+<div class="main">
 
-    <section class="section">
-      <h2>Portfolio Projects</h2>
-
-      <!-- Inventory KPI Project -->
-      <div class="project">
-        <img src="assets/inventory-kpi.png" alt="Inventory KPI Dashboard Screenshot">
-        <h3>📦 Inventory KPI Dashboard</h3>
-        <p><strong>Tools:</strong> Python (Streamlit, Pandas, Plotly), Excel/CSV</p>
-        <p><strong>Problem:</strong> Teams faced delays in updating system vs physical activities, leading to SLA breaches.</p>
-        <p><strong>Solution:</strong> Built an interactive Streamlit dashboard with KPIs, filters, and SLA compliance tracking.</p>
-        <p><strong>Outcome:</strong> Reduced SLA breaches by <b>30%</b>, improved accountability across regions, and enabled daily leadership insights.</p>
-        <a href="https://your-streamlit-link.streamlit.app" target="_blank" style="display:inline-block; margin-top:10px; padding:10px 15px; background:#0078ff; color:white; border-radius:8px; text-decoration:none;">
-          🚀 View Live App
-        </a>
-      </div>
-
-      <!-- Vessel Analyzer Project -->
-      <div class="project">
-        <img src="assets/vessel-analyzer.png" alt="Vessel Movement Analyzer Screenshot">
-        <h3>🚢 Vessel Movement Analyzer & Strategic Planner</h3>
-        <p><strong>Tools:</strong> Python (Streamlit, Pandas, Plotly, NetworkX), Excel</p>
-        <p><strong>Problem:</strong> Vessel schedules were manually tracked, making it hard to analyze routes, turnaround times, and port efficiency.</p>
-        <p><strong>Solution:</strong> Developed a Streamlit app that maps routes, calculates round-trip times, ranks ports, and visualizes vessel-port networks.</p>
-        <p><strong>Outcome:</strong> Enabled strategic planning, improved port utilization insights, and identified route optimization opportunities.</p>
-        <a href="https://your-vessel-app-link.streamlit.app" target="_blank" style="display:inline-block; margin-top:10px; padding:10px 15px; background:#0078ff; color:white; border-radius:8px; text-decoration:none;">
-          🚀 View Live App
-        </a>
-      </div>
-
-      <div class="project-card">
-        <img src="assets/fifo-analyser.png" alt="FIFO Compliance Analyser Screenshot" style="width:100%; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-        <h3>📊 FIFO Compliance Analyser</h3>
-        <p><b>Tools:</b> Python (Streamlit, Pandas), Excel</p>
-        <p><b>Problem:</b> Hard to verify if containers were released on a true FIFO basis across agents and ports.</p>
-        <p><b>Solution:</b> Built an analyser that checks depot IN/OUT sequences, calculates FIFO %, highlights exceptions, and provides agent-wise summaries.</p>
-        <p><b>Outcome:</b> Improved compliance monitoring, quick exception detection, and reduced disputes on container handling.</p>
-        <a href="https://your-fifo-app-link.streamlit.app" target="_blank" style="display:inline-block; margin-top:10px; padding:10px 15px; background:#0078ff; color:white; border-radius:8px; text-decoration:none;">
-          🚀 View Live App
-        </a>
-      </div>
-
-    </section>
-
-    <section class="section">
-      <h2>Skills</h2>
-      <div class="skills">
-        <span>Power BI</span>
-        <span>Excel (Pivot, PowerQuery)</span>
-        <span>SQL (MySQL, PostgreSQL)</span>
-        <span>Python (Pandas, Streamlit, Plotly)</span>
-        <span>Shipping Data Analysis</span>
-        <span>ERP Optimization</span>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>Contact</h2>
-      <div class="contact">
-        <a href="mailto:humairqureshi@example.com">📧 Email</a>
-        <a href="https://linkedin.com/in/humair-qureshi" target="_blank">🔗 LinkedIn</a>
-        <a href="https://github.com/defihumair" target="_blank">💻 GitHub</a>
-      </div>
-    </section>
-
+  <!-- STEP 1: Select Shed -->
+  <div class="step active" id="step-1">
+    <div class="step-heading"><h2>Select your shed</h2><p>Which zone are you reporting from?</p></div>
+    <div id="shed-loading" class="loading-screen"><div class="spinner"></div><p>Loading shed data…</p></div>
+    <div class="shed-grid" id="shed-grid" style="display:none"></div>
+    <div class="btn-row"><button class="btn-primary" id="btn-1" disabled onclick="goStep(2)">Continue →</button></div>
   </div>
 
-  <footer>
-    © 2025 Muhammad Humair Qureshi – BI Portfolio
-  </footer>
+  <!-- STEP 2: Select Light -->
+  <div class="step" id="step-2">
+    <div class="step-heading"><h2>Select the light</h2><p>Tap the faulty light ID — use search to find it fast</p></div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" type="text" id="light-search" placeholder="Search e.g. 05-F or N-07…" oninput="filterLights()">
+    </div>
+    <div class="lights-scroll" id="lights-scroll"></div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="goStep(1)">← Back</button>
+      <button class="btn-primary" id="btn-2" disabled onclick="goStep(3)">Continue →</button>
+    </div>
+  </div>
 
+  <!-- STEP 3: Issue & Action -->
+  <div class="step" id="step-3">
+    <div class="step-heading"><h2>Issue &amp; Action</h2><p>What is the problem, and what was done about it?</p></div>
+
+    <!-- Issue + Action combined card -->
+    <div class="issue-action-card">
+      <!-- Issue -->
+      <div class="iac-section">
+        <div class="iac-label">⚠️ What is the issue?</div>
+        <div class="iac-options" id="issue-options">
+          <div class="iac-opt" onclick="selectIssue(this,'Not working','danger')">
+            <div class="iac-opt-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#C13A2B"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.5 4.5 0 1 0 8.5 9.5c0 .66.13 1.29.37 1.87"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+            </div>
+            <div class="iac-opt-text"><strong>Not working</strong><span>Completely off</span></div>
+          </div>
+          <div class="iac-opt" onclick="selectIssue(this,'Flickering','warning')">
+            <div class="iac-opt-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="iac-opt-text"><strong>Flickering</strong><span>Unstable / flashing</span></div>
+          </div>
+          <div class="iac-opt" onclick="selectIssue(this,'Dim / weak','warning')">
+            <div class="iac-opt-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg>
+            </div>
+            <div class="iac-opt-text"><strong>Dim / weak</strong><span>Below full brightness</span></div>
+          </div>
+          <div class="iac-opt" onclick="selectIssue(this,'Damaged','danger')">
+            <div class="iac-opt-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#C13A2B"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="iac-opt-text"><strong>Damaged</strong><span>Physical damage</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action taken -->
+      <div class="iac-section">
+        <div class="iac-label">🔧 Action taken on this light</div>
+        <div class="iac-options" id="action-options">
+          <div class="iac-opt" onclick="selectAction(this,'Repaired Light','badge-warning')">
+            <div class="iac-opt-icon" style="font-size:18px">🔧</div>
+            <div class="iac-opt-text"><strong>Repaired Light</strong><span>Fixed in place</span></div>
+          </div>
+          <div class="iac-opt" onclick="selectAction(this,'New Light Installed','badge-success')">
+            <div class="iac-opt-icon" style="font-size:18px">💡</div>
+            <div class="iac-opt-text"><strong>New Light Installed</strong><span>Old removed, new fitted</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cost (shows after action selected) -->
+    <div id="cost-section" style="display:none">
+      <div class="cost-card">
+        <div class="cost-card-label">💰 Cost of repair / replacement (PKR)</div>
+        <div class="cost-wrap">
+          <div class="cost-prefix">PKR</div>
+          <input class="cost-input" type="number" id="cost-input" placeholder="e.g. 1500" min="0" oninput="checkStep3()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Reporter -->
+    <div class="reporter-card">
+      <div class="reporter-card-label">👤 Reported by</div>
+      <div class="fields">
+        <div class="field">
+          <label>Your name</label>
+          <input type="text" id="name-input" placeholder="e.g. Ahmed Khan" oninput="checkStep3()">
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select id="role-input" onchange="checkStep3()">
+            <option value="">Select role</option>
+            <option>Ops</option>
+            <option>Admin</option>
+            <option>Maintenance</option>
+            <option>Supervisor</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Notes (optional)</label>
+          <input type="text" id="notes-input" placeholder="Any extra context…">
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="goStep(2)">← Back</button>
+      <button class="btn-primary" id="btn-3" disabled onclick="goStep(4)">Review →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Review -->
+  <div class="step" id="step-4">
+    <div class="step-heading"><h2>Review &amp; submit</h2><p>Check everything before submitting</p></div>
+    <div class="summary-card">
+      <div class="summary-header">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>Fault report summary</span>
+      </div>
+      <div class="summary-body">
+        <div class="summary-row"><span class="summary-key">Zone</span><span class="summary-val" id="s-zone">—</span></div>
+        <div class="summary-row"><span class="summary-key">Light ID</span><span class="summary-val" id="s-light">—</span></div>
+        <div class="summary-row"><span class="summary-key">Issue</span><span id="s-issue-badge">—</span></div>
+        <div class="summary-row"><span class="summary-key">Action taken</span><span id="s-action-badge">—</span></div>
+        <div class="summary-row" id="cost-summary-row" style="display:none"><span class="summary-key">Cost</span><span class="summary-val" id="s-cost">—</span></div>
+        <div class="summary-row"><span class="summary-key">Reported by</span><span class="summary-val" id="s-name">—</span></div>
+        <div class="summary-row"><span class="summary-key">Role</span><span class="summary-val" id="s-role">—</span></div>
+        <div class="summary-row"><span class="summary-key">Timestamp</span><span class="summary-val" id="s-time">—</span></div>
+        <div class="summary-row" id="notes-summary-row" style="display:none"><span class="summary-key">Notes</span><span class="summary-val" id="s-notes">—</span></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="goStep(3)">← Back</button>
+      <button class="btn-primary" onclick="submitForm()">✓ Submit report</button>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div class="step" id="step-done">
+    <div class="success-screen">
+      <div class="success-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <h2>Report submitted!</h2>
+      <p>Fault logged for</p>
+      <div class="success-light-badge" id="done-light-id">—</div>
+      <div class="success-meta">
+        <div class="success-meta-row"><span>Zone</span><span id="done-shed">—</span></div>
+        <div class="success-meta-row"><span>Issue</span><span id="done-issue">—</span></div>
+        <div class="success-meta-row"><span>Action</span><span id="done-action">—</span></div>
+        <div class="success-meta-row" id="done-cost-row" style="display:none"><span>Cost</span><span id="done-cost">—</span></div>
+        <div class="success-meta-row"><span>Reported by</span><span id="done-name">—</span></div>
+        <div class="success-meta-row"><span>Time</span><span id="done-time">—</span></div>
+      </div>
+      <button class="btn-primary" onclick="resetForm()" style="max-width:220px;margin:0 auto;display:block;">Report another light</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Submitting overlay -->
+<div class="submitting-overlay" id="submitting-overlay" style="display:none">
+  <div class="spinner"></div>
+  <p>Submitting report…</p>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  ⚙️  CONFIG  — only edit these two lines
+// ══════════════════════════════════════════════════════════
+const CONFIG = {
+  // Path to your lights_data.json on GitHub Pages (same folder = './')
+  DATA_URL: './lights_data.json',
+
+  // Paste your Google Apps Script Web App URL here after deploying
+  // Leave as-is to just console.log submissions during testing
+  GOOGLE_SCRIPT_URL: 'YOUR_GOOGLE_SCRIPT_WEBAPP_URL_HERE',
+
+  // Shed icons — add/change freely
+  SHED_ICONS: {
+    'Shed 1': '🏭',
+    'Shed 3': '🏗️',
+    'Shed 4': '🏭',
+    'Shed 6': '🏭',
+    'Unicef': '🤝'
+  }
+};
+// ══════════════════════════════════════════════════════════
+
+const STEPS = ['Shed', 'Light', 'Issue & Action', 'Review'];
+let SHED_DATA = {}, allLights = [];
+let state = { shed: null, light: null, issue: null, issueSeverity: null, action: null, actionBadge: null };
+
+// ── Load lights_data.json ──────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch(CONFIG.DATA_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    SHED_DATA = await res.json();
+    renderSheds();
+  } catch(e) {
+    document.getElementById('shed-loading').innerHTML =
+      `<div style="color:var(--danger);text-align:center;padding:20px;font-size:14px">
+        ⚠️ Could not load <strong>lights_data.json</strong>.<br><br>
+        Make sure <code>lights_data.json</code> is in the <strong>same folder</strong> as <code>index.html</code> on GitHub Pages,
+        and that GitHub Pages is enabled on your repo.
+      </div>`;
+  }
+}
+
+// ── Progress bar ───────────────────────────────────────────
+function renderProgress(active) {
+  const wrap = document.getElementById('progress-steps');
+  wrap.innerHTML = '';
+  STEPS.forEach((label, i) => {
+    const n = i + 1;
+    const dot = document.createElement('div');
+    dot.className = 'ps-dot' + (n < active ? ' done' : n === active ? ' active' : '');
+    dot.textContent = n < active ? '✓' : n;
+    const lbl = document.createElement('div');
+    lbl.className = 'ps-label' + (n < active ? ' done' : n === active ? ' active' : '');
+    lbl.textContent = label;
+    const item = document.createElement('div');
+    item.className = 'ps-item';
+    item.append(dot, lbl);
+    wrap.appendChild(item);
+    if (i < STEPS.length - 1) {
+      const line = document.createElement('div');
+      line.className = 'ps-line' + (n < active ? ' done' : '');
+      wrap.appendChild(line);
+    }
+  });
+}
+
+// ── Sheds ──────────────────────────────────────────────────
+function renderSheds() {
+  document.getElementById('shed-loading').style.display = 'none';
+  const grid = document.getElementById('shed-grid');
+  grid.style.display = 'grid';
+  // Render in display order
+  const order = ['Shed 1','Shed 3','Shed 4','Shed 6','Unicef'];
+  const keys = order.filter(k => SHED_DATA[k]).concat(Object.keys(SHED_DATA).filter(k => !order.includes(k)));
+  keys.forEach(name => {
+    if (!SHED_DATA[name]) return;
+    const lights = SHED_DATA[name];
+    const tile = document.createElement('div');
+    tile.className = 'shed-tile';
+    tile.innerHTML = `
+      <div class="shed-tile-icon">${CONFIG.SHED_ICONS[name] || '🏭'}</div>
+      <div class="shed-tile-name">${name}</div>
+      <div class="shed-tile-count">${lights.length} lights</div>`;
+    tile.onclick = () => {
+      document.querySelectorAll('.shed-tile').forEach(t => t.classList.remove('selected'));
+      tile.classList.add('selected');
+      state.shed = name; state.light = null;
+      allLights = lights;
+      document.getElementById('btn-1').disabled = false;
+    };
+    grid.appendChild(tile);
+  });
+}
+
+// ── Lights ─────────────────────────────────────────────────
+function renderLights(filter) {
+  const scroll = document.getElementById('lights-scroll');
+  scroll.innerHTML = '';
+  const q = (filter || '').toLowerCase().trim();
+  const filtered = q ? allLights.filter(id => id.toLowerCase().includes(q)) : allLights;
+  if (!filtered.length) { scroll.innerHTML = '<div class="no-results">No lights match your search</div>'; return; }
+
+  // Group by first segment of ID
+  const groups = {};
+  filtered.forEach(id => {
+    const parts = id.split('-');
+    let key;
+    if (parts[0].match(/^[A-Za-z]+$/)) key = `Aisle ${parts[0]}`;
+    else key = `Row ${parseInt(parts[0], 10)}`;
+    (groups[key] = groups[key] || []).push(id);
+  });
+
+  Object.entries(groups).forEach(([grp, ids]) => {
+    const lbl = document.createElement('div');
+    lbl.className = 'row-label'; lbl.textContent = grp;
+    const g = document.createElement('div');
+    g.className = 'lights-grid';
+    ids.forEach(id => {
+      const t = document.createElement('div');
+      t.className = 'light-tile' + (state.light === id ? ' selected' : '');
+      t.innerHTML = `<span>${id}</span>`;
+      t.onclick = () => {
+        document.querySelectorAll('.light-tile').forEach(x => x.classList.remove('selected'));
+        t.classList.add('selected');
+        state.light = id;
+        document.getElementById('btn-2').disabled = false;
+      };
+      g.appendChild(t);
+    });
+    scroll.appendChild(lbl);
+    scroll.appendChild(g);
+  });
+}
+function filterLights() { renderLights(document.getElementById('light-search').value); }
+
+// ── Issue & Action selectors ───────────────────────────────
+function selectIssue(el, label, severity) {
+  document.querySelectorAll('#issue-options .iac-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  state.issue = label;
+  state.issueSeverity = severity;
+  checkStep3();
+}
+function selectAction(el, label, badge) {
+  document.querySelectorAll('#action-options .iac-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  state.action = label;
+  state.actionBadge = badge;
+  document.getElementById('cost-section').style.display = 'block';
+  checkStep3();
+}
+
+// ── Validate step 3 ────────────────────────────────────────
+function checkStep3() {
+  const ok = state.issue && state.action
+    && document.getElementById('name-input').value.trim()
+    && document.getElementById('role-input').value;
+  document.getElementById('btn-3').disabled = !ok;
+}
+
+// ── Fill summary ───────────────────────────────────────────
+function fillSummary() {
+  const name  = document.getElementById('name-input').value.trim();
+  const role  = document.getElementById('role-input').value;
+  const cost  = document.getElementById('cost-input').value.trim();
+  const notes = document.getElementById('notes-input').value.trim();
+  const ts    = new Date().toLocaleString('en-PK', { dateStyle:'medium', timeStyle:'short' });
+
+  document.getElementById('s-zone').textContent  = state.shed;
+  document.getElementById('s-light').textContent = state.light;
+  document.getElementById('s-name').textContent  = name;
+  document.getElementById('s-role').textContent  = role;
+  document.getElementById('s-time').textContent  = ts;
+
+  const iBadge = state.issueSeverity === 'danger' ? 'badge-danger' : 'badge-warning';
+  document.getElementById('s-issue-badge').innerHTML  = `<span class="badge ${iBadge}">${state.issue}</span>`;
+  document.getElementById('s-action-badge').innerHTML = `<span class="badge ${state.actionBadge}">${state.action}</span>`;
+
+  const hasCost = cost !== '';
+  document.getElementById('cost-summary-row').style.display = hasCost ? 'flex' : 'none';
+  if (hasCost) document.getElementById('s-cost').textContent = `PKR ${Number(cost).toLocaleString()}`;
+
+  const hasNotes = notes !== '';
+  document.getElementById('notes-summary-row').style.display = hasNotes ? 'flex' : 'none';
+  if (hasNotes) document.getElementById('s-notes').textContent = notes;
+}
+
+// ── Navigation ─────────────────────────────────────────────
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  const id = n === 'done' ? 'step-done' : 'step-' + n;
+  document.getElementById(id).classList.add('active');
+  if (n >= 1 && n <= 4) renderProgress(n);
+  document.getElementById('progress-wrap').style.display = (n === 'done') ? 'none' : 'block';
+  if (n === 2) { document.getElementById('light-search').value = ''; renderLights(''); }
+  if (n === 4) fillSummary();
+  window.scrollTo(0, 0);
+}
+
+// ── Submit → Google Sheets ─────────────────────────────────
+function submitForm() {
+  const name  = document.getElementById('name-input').value.trim();
+  const role  = document.getElementById('role-input').value;
+  const cost  = document.getElementById('cost-input').value.trim();
+  const notes = document.getElementById('notes-input').value.trim();
+  const ts    = new Date().toLocaleString('en-PK', { dateStyle:'medium', timeStyle:'short' });
+
+  const payload = {
+    Timestamp:  ts,
+    Zone:       state.shed,
+    Light_ID:   state.light,
+    Issue:      state.issue,
+    Action:     state.action,
+    Cost_PKR:   cost ? Number(cost) : '',
+    Name:       name,
+    Role:       role,
+    Notes:      notes
+  };
+
+  // Show submitting overlay
+  document.getElementById('submitting-overlay').style.display = 'flex';
+
+  const doFinish = () => {
+    document.getElementById('submitting-overlay').style.display = 'none';
+    // Populate done screen
+    document.getElementById('done-light-id').textContent = state.light;
+    document.getElementById('done-shed').textContent     = state.shed;
+    document.getElementById('done-issue').textContent    = state.issue;
+    document.getElementById('done-action').textContent   = state.action;
+    document.getElementById('done-name').textContent     = name;
+    document.getElementById('done-time').textContent     = ts;
+    const hasCost = cost !== '';
+    document.getElementById('done-cost-row').style.display = hasCost ? 'flex' : 'none';
+    if (hasCost) document.getElementById('done-cost').textContent = `PKR ${Number(cost).toLocaleString()}`;
+    goStep('done');
+  };
+
+  if (CONFIG.GOOGLE_SCRIPT_URL && CONFIG.GOOGLE_SCRIPT_URL !== 'YOUR_GOOGLE_SCRIPT_WEBAPP_URL_HERE') {
+    fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .catch(e => console.error('Submit error:', e))
+    .finally(doFinish);
+  } else {
+    console.log('⚠️  Set GOOGLE_SCRIPT_URL in CONFIG. Payload:', payload);
+    setTimeout(doFinish, 600); // Small delay so overlay is visible
+  }
+}
+
+// ── Reset ──────────────────────────────────────────────────
+function resetForm() {
+  state = { shed: null, light: null, issue: null, issueSeverity: null, action: null, actionBadge: null };
+  document.querySelectorAll('.shed-tile,.iac-opt').forEach(t => t.classList.remove('selected'));
+  ['name-input','role-input','cost-input','notes-input'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cost-section').style.display = 'none';
+  ['btn-1','btn-2','btn-3'].forEach(id => document.getElementById(id).disabled = true);
+  document.getElementById('progress-wrap').style.display = 'block';
+  goStep(1);
+}
+
+// ── Init ───────────────────────────────────────────────────
+renderProgress(1);
+loadData();
+</script>
 </body>
 </html>
-
-
