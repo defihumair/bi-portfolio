@@ -358,7 +358,7 @@ const CONFIG = {
 
   // Paste your Google Apps Script Web App URL here after deploying
   // Leave as-is to just console.log submissions during testing
-  GOOGLE_SCRIPT_URL: 'YOUR_GOOGLE_SCRIPT_WEBAPP_URL_HERE',
+  GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzDSDzMH9jISXvgpUwZpJG03hYZfEHgV5roZNKdXjtTD2BhTbGKeIwaz3k2oETvqoFN/exec',
 
   // Shed icons — add/change freely
   SHED_ICONS: {
@@ -587,19 +587,15 @@ function submitForm() {
     goStep('done');
   };
 
-  if (CONFIG.GOOGLE_SCRIPT_URL && CONFIG.GOOGLE_SCRIPT_URL !== 'https://script.google.com/macros/s/AKfycbzDSDzMH9jISXvgpUwZpJG03hYZfEHgV5roZNKdXjtTD2BhTbGKeIwaz3k2oETvqoFN/exec') {
-    fetch(CONFIG.GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      mode:   'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .catch(e => console.error('Submit error:', e))
-    .finally(doFinish);
-  } else {
-    console.log('⚠️  Set GOOGLE_SCRIPT_URL in CONFIG. Payload:', payload);
-    setTimeout(doFinish, 600); // Small delay so overlay is visible
-  }
+  // ✅ Always send to Google Sheets
+  fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+    method:  'POST',
+    mode:    'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(payload)
+  })
+  .catch(e => console.error('Submit error:', e))
+  .finally(doFinish);
 }
 
 // ── Reset ──────────────────────────────────────────────────
