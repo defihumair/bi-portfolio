@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse Light Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F5F4F0; --surface: #FFFFFF; --surface2: #F0EFE9;
+    --border: #E2E0D8; --border2: #CCCAC0;
+    --text: #1A1916; --text2: #6B6960; --text3: #A09D94;
+    --accent: #1C4ED8; --accent-bg: #EEF2FF; --accent-light: #DBEAFE;
+    --success: #0F6E56; --success-bg: #ECFDF5;
+    --danger: #C13A2B; --warning: #B45309;
+    --radius: 10px; --radius-lg: 16px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+  }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; }
+  .app-header { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+  .app-logo { width:32px; height:32px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; }
+  .app-logo svg { width:18px; height:18px; fill:none; stroke:white; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .app-title { font-size:15px; font-weight:600; }
+  .app-subtitle { font-size:12px; color:var(--text2); }
+  .progress-bar-wrap { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 20px 14px; }
+  .progress-steps { display:flex; align-items:center; }
+  .ps-item { display:flex; align-items:center; gap:6px; flex:1; }
+  .ps-item:last-child { flex:none; }
+  .ps-dot { width:24px; height:24px; border-radius:50%; background:var(--surface2); border:1.5px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--text3); flex-shrink:0; transition:all .2s; }
+  .ps-dot.active { background:var(--accent); border-color:var(--accent); color:white; }
+  .ps-dot.done { background:var(--success); border-color:var(--success); color:white; }
+  .ps-label { font-size:11px; color:var(--text3); white-space:nowrap; }
+  .ps-label.active { color:var(--accent); font-weight:500; }
+  .ps-label.done { color:var(--success); }
+  .ps-line { flex:1; height:1.5px; background:var(--border); margin:0 8px; transition:background .3s; }
+  .ps-line.done { background:var(--success); }
+  .main { flex:1; padding:20px 16px 40px; max-width:520px; margin:0 auto; width:100%; }
+  .step { display:none; animation:fadeUp .22s ease; }
+  .step.active { display:block; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .step-heading { margin-bottom:20px; }
+  .step-heading h2 { font-size:20px; font-weight:600; line-height:1.3; }
+  .step-heading p { font-size:14px; color:var(--text2); margin-top:4px; }
+  /* Shed grid */
+  .shed-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .shed-tile { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:16px; cursor:pointer; transition:border-color .15s,box-shadow .15s; display:flex; flex-direction:column; gap:4px; }
+  .shed-tile:hover { border-color:var(--border2); box-shadow:var(--shadow); }
+  .shed-tile.selected { border-color:var(--accent); background:var(--accent-bg); box-shadow:0 0 0 3px rgba(28,78,216,0.08); }
+  .shed-tile-icon { font-size:20px; margin-bottom:4px; }
+  .shed-tile-name { font-size:15px; font-weight:600; }
+  .shed-tile-count { font-size:12px; color:var(--text2); }
+  .shed-tile.selected .shed-tile-count { color:var(--accent); }
+  /* Search */
+  .search-wrap { position:relative; margin-bottom:12px; }
+  .search-wrap svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; stroke:var(--text3); stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .search-input { width:100%; padding:10px 12px 10px 36px; border:1.5px solid var(--border); border-radius:var(--radius); font-family:'DM Sans',sans-serif; font-size:14px; background:var(--surface); color:var(--text); outline:none; transition:border-color .15s; }
+  .search-input:focus { border-color:var(--accent); }
+  .search-input::placeholder { color:var(--text3); }
+  /* Light grid */
+  .lights-scroll { max-height:300px; overflow-y:auto; padding-right:2px; }
+  .lights-scroll::-webkit-scrollbar { width:4px; }
+  .lights-scroll::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+  .row-label { font-size:11px; font-weight:600; letter-spacing:.06em; color:var(--text3); text-transform:uppercase; padding:8px 0 4px; border-bottom:1px solid var(--border); margin-bottom:6px; }
+  .lights-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:6px; }
+  .light-tile { background:var(--surface); border:1.5px solid var(--border); border-radius:8px; padding:8px 4px; cursor:pointer; text-align:center; transition:border-color .12s,background .12s; }
+  .light-tile:hover { border-color:var(--border2); }
+  .light-tile.selected { border-color:var(--accent); background:var(--accent-bg); }
+  .light-tile span { font-family:'DM Mono',monospace; font-size:10px; font-weight:500; color:var(--text); display:block; }
+  .light-tile.selected span { color:var(--accent); }
+  .no-results { padding:24px 0; text-align:center; color:var(--text3); font-size:14px; }
+  /* Issue tiles */
+  .issue-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .issue-tile { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:16px; cursor:pointer; transition:border-color .15s,box-shadow .15s; }
+  .issue-tile:hover { border-color:var(--border2); box-shadow:var(--shadow); }
+  .issue-tile.selected { border-color:var(--accent); background:var(--accent-bg); }
+  .issue-tile-icon { width:36px; height:36px; border-radius:8px; background:var(--surface2); display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
+  .issue-tile.selected .issue-tile-icon { background:var(--accent-light); }
+  .issue-tile-icon svg { width:18px; height:18px; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .issue-tile-label { font-size:14px; font-weight:500; }
+  .issue-tile-desc { font-size:12px; color:var(--text2); margin-top:2px; }
+  /* Section divider */
+  .section-divider { margin:20px 0 12px; display:flex; align-items:center; gap:10px; }
+  .section-divider span { font-size:12px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--text3); white-space:nowrap; }
+  .section-divider::before, .section-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+  /* Action tiles — 2 options */
+  .action-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .action-tile { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:16px; cursor:pointer; transition:border-color .15s,box-shadow .15s; display:flex; flex-direction:column; gap:4px; }
+  .action-tile:hover { border-color:var(--border2); box-shadow:var(--shadow); }
+  .action-tile.selected { border-color:var(--accent); background:var(--accent-bg); }
+  .action-tile-icon { font-size:28px; margin-bottom:6px; }
+  .action-tile-label { font-size:14px; font-weight:600; }
+  .action-tile.selected .action-tile-label { color:var(--accent); }
+  .action-tile-desc { font-size:12px; color:var(--text2); }
+  /* Cost */
+  .cost-wrap { display:flex; align-items:flex-end; gap:0; margin-top:4px; }
+  .cost-prefix { display:flex; align-items:center; padding:11px 12px; background:var(--surface2); border:1.5px solid var(--border); border-right:none; border-radius:var(--radius) 0 0 var(--radius); font-size:13px; font-weight:600; color:var(--text2); height:46px; flex-shrink:0; }
+  .cost-wrap input { border-radius:0 var(--radius) var(--radius) 0; flex:1; }
+  /* Fields */
+  .fields { display:flex; flex-direction:column; gap:14px; margin-top:0; }
+  .field label { display:block; font-size:12px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--text2); margin-bottom:6px; }
+  .field input, .field select { width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:var(--radius); font-family:'DM Sans',sans-serif; font-size:14px; background:var(--surface); color:var(--text); outline:none; transition:border-color .15s; -webkit-appearance:none; }
+  .field input:focus, .field select:focus { border-color:var(--accent); }
+  .field select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A09D94' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+  /* Summary */
+  .summary-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:16px; }
+  .summary-header { background:var(--surface2); padding:12px 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); }
+  .summary-header svg { width:16px; height:16px; stroke:var(--text2); stroke-width:2; fill:none; }
+  .summary-header span { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--text2); }
+  .summary-body { padding:4px 0; }
+  .summary-row { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); }
+  .summary-row:last-child { border-bottom:none; }
+  .summary-key { font-size:13px; color:var(--text2); }
+  .summary-val { font-size:13px; font-weight:500; font-family:'DM Mono',monospace; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; font-family:'DM Sans',sans-serif; }
+  .badge-danger { background:#FEF2F2; color:var(--danger); }
+  .badge-warning { background:#FFFBEB; color:var(--warning); }
+  .badge-success { background:var(--success-bg); color:var(--success); }
+  /* Buttons */
+  .btn-row { display:flex; gap:10px; margin-top:20px; }
+  .btn-primary { flex:1; background:var(--accent); color:white; border:none; border-radius:var(--radius); padding:13px 20px; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:opacity .15s,transform .1s; }
+  .btn-primary:hover { opacity:.9; }
+  .btn-primary:active { transform:scale(.98); }
+  .btn-primary:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+  .btn-ghost { background:var(--surface); color:var(--text); border:1.5px solid var(--border); border-radius:var(--radius); padding:13px 18px; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:500; cursor:pointer; transition:border-color .15s; }
+  .btn-ghost:hover { border-color:var(--border2); }
+  /* Success */
+  .success-screen { text-align:center; padding:40px 20px; }
+  .success-check { width:72px; height:72px; border-radius:50%; background:var(--success-bg); border:2px solid #A7F3D0; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; animation:popIn .4s cubic-bezier(.175,.885,.32,1.275); }
+  @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+  .success-check svg { width:32px; height:32px; stroke:var(--success); stroke-width:2.5; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .success-screen h2 { font-size:22px; font-weight:600; margin-bottom:8px; }
+  .success-screen p { font-size:14px; color:var(--text2); margin-bottom:6px; }
+  .success-light-badge { display:inline-block; background:var(--accent-bg); color:var(--accent); font-family:'DM Mono',monospace; font-size:16px; font-weight:500; padding:6px 16px; border-radius:8px; margin:8px 0 24px; border:1px solid var(--accent-light); }
+  .success-meta { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 16px; text-align:left; margin-bottom:20px; }
+  .success-meta-row { display:flex; justify-content:space-between; padding:6px 0; font-size:13px; border-bottom:1px solid var(--border); }
+  .success-meta-row:last-child { border-bottom:none; }
+  .success-meta-row span:first-child { color:var(--text2); }
+  .success-meta-row span:last-child { font-weight:500; }
+  /* Loading */
+  .loading-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:14px; }
+  .spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .loading-screen p { font-size:14px; color:var(--text2); }
+  @media(max-width:380px) { .lights-grid{grid-template-columns:repeat(3,1fr)} .shed-grid,.action-grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="app-logo">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+  </div>
+  <div>
+    <div class="app-title">Light Report &amp; Action</div>
+    <div class="app-subtitle">Warehouse Management System</div>
+  </div>
+</div>
+
+<div class="progress-bar-wrap" id="progress-wrap">
+  <div class="progress-steps" id="progress-steps"></div>
+</div>
+
+<div class="main">
+
+  <!-- STEP 1 -->
+  <div class="step active" id="step-1">
+    <div class="step-heading"><h2>Select your shed</h2><p>Which zone are you reporting from?</p></div>
+    <div id="shed-loading" class="loading-screen"><div class="spinner"></div><p>Loading shed data…</p></div>
+    <div class="shed-grid" id="shed-grid" style="display:none"></div>
+    <div class="btn-row"><button class="btn-primary" id="btn-1" disabled onclick="goStep(2)">Continue →</button></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="step-2">
+    <div class="step-heading"><h2>Select the light</h2><p>Tap the faulty light ID — use search to find it fast</p></div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" type="text" id="light-search" placeholder="Search e.g. 05-F or N-07…" oninput="filterLights()">
+    </div>
+    <div class="lights-scroll" id="lights-scroll"></div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="goStep(1)">← Back</button>
+      <button class="btn-primary" id="btn-2" disabled onclick="goStep(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step" id="step-3">
+    <div class="step-heading"><h2>Issue &amp; Action</h2><p>Select the problem and what action was taken on this light</p></div>
+
+    <!-- Issue -->
+    <div class="issue-grid" id="issue-grid"></div>
+
+    <!-- Action taken -->
+    <div class="section-divider"><span>Action taken on this light</span></div>
+    <div class="action-grid" id="action-grid"></div>
+
+    <!-- Cost (always shown after action selected) -->
+    <div id="cost-section" style="display:none">
+      <div class="section-divider"><span>Cost of repair / replacement</span></div>
+      <div class="field">
+        <label>Amount (PKR)</label>
+        <div class="cost-wrap">
+          <div class="cost-prefix">PKR</div>
+          <input type="number" id="cost-input" placeholder="e.g. 1500" min="0" oninput="checkStep3()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Reporter -->
+    <div class="section-divider"><span>Reported by</span></div>
+    <div class="fields">
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="name-input" placeholder="e.g. Ahmed Khan" oninput="checkStep3()">
+      </div>
+      <div class="field">
+        <label>Role</label>
+        <select id="role-input" onchange="checkStep3()">
+          <option value="">Select role</option>
+          <option>Ops</option>
+          <option>Admin</option>
+          <option>Maintenance</option>
+          <option>Supervisor</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Notes (optional)</label>
+        <input type="text" id="notes-input" placeholder="Any extra context…">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="goStep(2)">← Back</button>
+      <button class="btn-primary" id="btn-3" disabled onclick="goStep(4)">Review →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step" id="step-4">
+    <div class="step-heading"><h2>Review &amp; submit</h2><p>Check everything before submitting</p></div>
+    <div class="summary-card">
+      <div class="summary-header">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>Fault report summary</span>
+      </div>
+      <div class="summary-body">
+        <div class="summary-row"><span class="summary-key">Zone</span><span class="summary-val" id="s-zone">—</span></div>
+        <div class="summary-row"><span class="summary-key">Light ID</span><span class="summary-val" id="s-light">—</span></div>
+        <div class="summary-row"><span class="summary-key">Issue</span><span id="s-issue-badge">—</span></div>
+        <div class="summary-row"><span class="summary-key">Action taken</span><span id="s-action-badge">—</span></div>
+        <div class="summary-row" id="cost-summary-row" style="display:none"><span class="summary-key">Cost</span><span class="summary-val" id="s-cost">—</span></div>
+        <div class="summary-row"><span class="summary-key">Reported by</span><span class="summary-val" id="s-name">—</span></div>
+        <div class="summary-row"><span class="summary-key">Role</span><span class="summary-val" id="s-role">—</span></div>
+        <div class="summary-row"><span class="summary-key">Timestamp</span><span class="summary-val" id="s-time">—</span></div>
+        <div class="summary-row" id="notes-summary-row" style="display:none"><span class="summary-key">Notes</span><span class="summary-val" id="s-notes">—</span></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="goStep(3)">← Back</button>
+      <button class="btn-primary" onclick="submitForm()">✓ Submit report</button>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div class="step" id="step-done">
+    <div class="success-screen">
+      <div class="success-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <h2>Report submitted!</h2>
+      <p>Fault logged for</p>
+      <div class="success-light-badge" id="done-light-id">—</div>
+      <div class="success-meta">
+        <div class="success-meta-row"><span>Zone</span><span id="done-shed">—</span></div>
+        <div class="success-meta-row"><span>Issue</span><span id="done-issue">—</span></div>
+        <div class="success-meta-row"><span>Action</span><span id="done-action">—</span></div>
+        <div class="success-meta-row" id="done-cost-row" style="display:none"><span>Cost</span><span id="done-cost">—</span></div>
+        <div class="success-meta-row"><span>Reported by</span><span id="done-name">—</span></div>
+        <div class="success-meta-row"><span>Time</span><span id="done-time">—</span></div>
+      </div>
+      <button class="btn-primary" onclick="resetForm()" style="max-width:220px;margin:0 auto;display:block;">Report another light</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  CONFIG  ← only things you ever need to change
+// ══════════════════════════════════════════════════════════
+const CONFIG = {
+  DATA_URL:          './lights_data.json',          // path to data file on GitHub
+  GOOGLE_SCRIPT_URL: 'YOUR_GOOGLE_SCRIPT_WEBAPP_URL_HERE',
+  SHED_ICONS: { 'Shed 1':'🏭','Shed 3':'🏗️','Shed 4':'🏭','Shed 6':'🏭','Unicef':'🤝' }
+};
+
+// ══════════════════════════════════════════════════════════
+//  ISSUE & ACTION DATA
+// ══════════════════════════════════════════════════════════
+const ISSUES = [
+  { label:'Not working',  desc:'Light completely off',    severity:'danger',
+    icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.5 4.5 0 1 0 8.5 9.5c0 .66.13 1.29.37 1.87"/><line x1="2" y1="2" x2="22" y2="22"/></svg>` },
+  { label:'Flickering',   desc:'Unstable / flashing',     severity:'warning',
+    icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>` },
+  { label:'Dim / weak',   desc:'Below full brightness',   severity:'warning',
+    icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>` },
+  { label:'Damaged',      desc:'Physical damage visible', severity:'danger',
+    icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>` }
+];
+
+// ← ONLY 2 ACTION OPTIONS as requested
+const ACTIONS = [
+  { label:'Repaired Light',      desc:'Existing light fixed in place',      icon:'🔧', badge:'badge-warning' },
+  { label:'New Light Installed', desc:'Old removed, brand new light fitted', icon:'💡', badge:'badge-success' }
+];
+
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+const STEPS = ['Shed','Light','Issue & Action','Review'];
+let SHED_DATA = {}, allLights = [];
+let state = { shed:null, light:null, issue:null, action:null };
+
+// ══════════════════════════════════════════════════════════
+//  LOAD DATA  (fetch lights_data.json from GitHub)
+// ══════════════════════════════════════════════════════════
+async function loadData() {
+  try {
+    const res = await fetch(CONFIG.DATA_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    SHED_DATA = await res.json();
+    renderSheds();
+  } catch(e) {
+    document.getElementById('shed-loading').innerHTML =
+      `<p style="color:var(--danger);text-align:center;padding:20px">
+        ⚠️ Could not load <strong>lights_data.json</strong>.<br><br>
+        Make sure it is in the <strong>same folder</strong> as this HTML file on GitHub Pages.
+      </p>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  PROGRESS
+// ══════════════════════════════════════════════════════════
+function renderProgress(active) {
+  const wrap = document.getElementById('progress-steps');
+  wrap.innerHTML = '';
+  STEPS.forEach((label, i) => {
+    const n = i + 1;
+    const dot = document.createElement('div');
+    dot.className = 'ps-dot' + (n < active ? ' done' : n === active ? ' active' : '');
+    dot.textContent = n < active ? '✓' : n;
+    const lbl = document.createElement('div');
+    lbl.className = 'ps-label' + (n < active ? ' done' : n === active ? ' active' : '');
+    lbl.textContent = label;
+    const item = document.createElement('div');
+    item.className = 'ps-item';
+    item.append(dot, lbl);
+    wrap.appendChild(item);
+    if (i < STEPS.length - 1) {
+      const line = document.createElement('div');
+      line.className = 'ps-line' + (n < active ? ' done' : '');
+      wrap.appendChild(line);
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  SHED GRID
+// ══════════════════════════════════════════════════════════
+function renderSheds() {
+  document.getElementById('shed-loading').style.display = 'none';
+  const grid = document.getElementById('shed-grid');
+  grid.style.display = 'grid';
+  Object.entries(SHED_DATA).forEach(([name, lights]) => {
+    const tile = document.createElement('div');
+    tile.className = 'shed-tile';
+    tile.innerHTML = `
+      <div class="shed-tile-icon">${CONFIG.SHED_ICONS[name] || '🏭'}</div>
+      <div class="shed-tile-name">${name}</div>
+      <div class="shed-tile-count">${lights.length} lights</div>`;
+    tile.onclick = () => {
+      document.querySelectorAll('.shed-tile').forEach(t => t.classList.remove('selected'));
+      tile.classList.add('selected');
+      state.shed = name; state.light = null;
+      allLights = lights;
+      document.getElementById('btn-1').disabled = false;
+    };
+    grid.appendChild(tile);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  LIGHT GRID
+// ══════════════════════════════════════════════════════════
+function renderLights(filter) {
+  const scroll = document.getElementById('lights-scroll');
+  scroll.innerHTML = '';
+  const q = (filter || '').toLowerCase().trim();
+  const filtered = q ? allLights.filter(id => id.toLowerCase().includes(q)) : allLights;
+  if (!filtered.length) { scroll.innerHTML = '<div class="no-results">No lights match your search</div>'; return; }
+
+  const groups = {};
+  filtered.forEach(id => {
+    const parts = id.split('-');
+    const key = isNaN(parseInt(parts[0])) ? `Aisle ${parts[0]}` : `Row ${parseInt(parts[0])}`;
+    (groups[key] = groups[key] || []).push(id);
+  });
+
+  Object.entries(groups).forEach(([grp, ids]) => {
+    const lbl = document.createElement('div');
+    lbl.className = 'row-label'; lbl.textContent = grp;
+    const g = document.createElement('div');
+    g.className = 'lights-grid';
+    ids.forEach(id => {
+      const t = document.createElement('div');
+      t.className = 'light-tile' + (state.light === id ? ' selected' : '');
+      t.innerHTML = `<span>${id}</span>`;
+      t.onclick = () => {
+        document.querySelectorAll('.light-tile').forEach(x => x.classList.remove('selected'));
+        t.classList.add('selected');
+        state.light = id;
+        document.getElementById('btn-2').disabled = false;
+      };
+      g.appendChild(t);
+    });
+    scroll.appendChild(lbl);
+    scroll.appendChild(g);
+  });
+}
+function filterLights() { renderLights(document.getElementById('light-search').value); }
+
+// ══════════════════════════════════════════════════════════
+//  ISSUE GRID
+// ══════════════════════════════════════════════════════════
+function renderIssues() {
+  const grid = document.getElementById('issue-grid');
+  ISSUES.forEach(iss => {
+    const tile = document.createElement('div');
+    tile.className = 'issue-tile';
+    tile.innerHTML = `<div class="issue-tile-icon">${iss.icon}</div>
+      <div class="issue-tile-label">${iss.label}</div>
+      <div class="issue-tile-desc">${iss.desc}</div>`;
+    tile.onclick = () => {
+      document.querySelectorAll('.issue-tile').forEach(x => x.classList.remove('selected'));
+      tile.classList.add('selected');
+      state.issue = iss; checkStep3();
+    };
+    grid.appendChild(tile);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  ACTION GRID — 2 options only
+// ══════════════════════════════════════════════════════════
+function renderActions() {
+  const grid = document.getElementById('action-grid');
+  ACTIONS.forEach(act => {
+    const tile = document.createElement('div');
+    tile.className = 'action-tile';
+    tile.innerHTML = `<div class="action-tile-icon">${act.icon}</div>
+      <div class="action-tile-label">${act.label}</div>
+      <div class="action-tile-desc">${act.desc}</div>`;
+    tile.onclick = () => {
+      document.querySelectorAll('.action-tile').forEach(x => x.classList.remove('selected'));
+      tile.classList.add('selected');
+      state.action = act;
+      document.getElementById('cost-section').style.display = 'block';
+      checkStep3();
+    };
+    grid.appendChild(tile);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  VALIDATE STEP 3
+// ══════════════════════════════════════════════════════════
+function checkStep3() {
+  const ok = state.issue && state.action
+    && document.getElementById('name-input').value.trim()
+    && document.getElementById('role-input').value;
+  document.getElementById('btn-3').disabled = !ok;
+}
+
+// ══════════════════════════════════════════════════════════
+//  SUMMARY
+// ══════════════════════════════════════════════════════════
+function fillSummary() {
+  const name  = document.getElementById('name-input').value.trim();
+  const role  = document.getElementById('role-input').value;
+  const cost  = document.getElementById('cost-input').value.trim();
+  const notes = document.getElementById('notes-input').value.trim();
+  const ts    = new Date().toLocaleString('en-PK',{dateStyle:'medium',timeStyle:'short'});
+
+  document.getElementById('s-zone').textContent  = state.shed;
+  document.getElementById('s-light').textContent = state.light;
+  document.getElementById('s-name').textContent  = name;
+  document.getElementById('s-role').textContent  = role;
+  document.getElementById('s-time').textContent  = ts;
+
+  const ib = state.issue.severity === 'danger' ? 'badge-danger' : 'badge-warning';
+  document.getElementById('s-issue-badge').innerHTML  = `<span class="badge ${ib}">${state.issue.label}</span>`;
+  document.getElementById('s-action-badge').innerHTML = `<span class="badge ${state.action.badge}">${state.action.label}</span>`;
+
+  const showCost = cost !== '';
+  document.getElementById('cost-summary-row').style.display = showCost ? 'flex' : 'none';
+  if (showCost) document.getElementById('s-cost').textContent = `PKR ${Number(cost).toLocaleString()}`;
+
+  const showNotes = notes !== '';
+  document.getElementById('notes-summary-row').style.display = showNotes ? 'flex' : 'none';
+  if (showNotes) document.getElementById('s-notes').textContent = notes;
+}
+
+// ══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════════
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  if (n >= 1 && n <= 4) renderProgress(n);
+  document.getElementById('progress-wrap').style.display = (n === 'done') ? 'none' : 'block';
+  if (n === 2) { document.getElementById('light-search').value = ''; renderLights(''); }
+  if (n === 4) fillSummary();
+  window.scrollTo(0, 0);
+}
+
+// ══════════════════════════════════════════════════════════
+//  SUBMIT → Google Sheets
+// ══════════════════════════════════════════════════════════
+function submitForm() {
+  const name  = document.getElementById('name-input').value.trim();
+  const role  = document.getElementById('role-input').value;
+  const cost  = document.getElementById('cost-input').value.trim();
+  const notes = document.getElementById('notes-input').value.trim();
+  const ts    = new Date().toLocaleString('en-PK',{dateStyle:'medium',timeStyle:'short'});
+
+  const payload = {
+    Zone: state.shed, Light_ID: state.light,
+    Issue: state.issue.label, Action: state.action.label,
+    Cost: cost ? `PKR ${cost}` : '',
+    Name: name, Role: role, Notes: notes, Timestamp: ts
+  };
+
+  if (CONFIG.GOOGLE_SCRIPT_URL !== 'YOUR_GOOGLE_SCRIPT_WEBAPP_URL_HERE') {
+    fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    }).catch(e => console.error(e));
+  } else {
+    console.log('⚠️ Set GOOGLE_SCRIPT_URL in CONFIG. Payload logged:', payload);
+  }
+
+  // Done screen
+  document.getElementById('done-light-id').textContent = state.light;
+  document.getElementById('done-shed').textContent     = state.shed;
+  document.getElementById('done-issue').textContent    = state.issue.label;
+  document.getElementById('done-action').textContent   = state.action.label;
+  document.getElementById('done-name').textContent     = name;
+  document.getElementById('done-time').textContent     = ts;
+  const hasCost = cost !== '';
+  document.getElementById('done-cost-row').style.display = hasCost ? 'flex' : 'none';
+  if (hasCost) document.getElementById('done-cost').textContent = `PKR ${Number(cost).toLocaleString()}`;
+
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-done').classList.add('active');
+  document.getElementById('progress-wrap').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+// ══════════════════════════════════════════════════════════
+//  RESET
+// ══════════════════════════════════════════════════════════
+function resetForm() {
+  state = { shed:null, light:null, issue:null, action:null };
+  document.querySelectorAll('.shed-tile,.issue-tile,.action-tile').forEach(t => t.classList.remove('selected'));
+  ['name-input','role-input','cost-input','notes-input'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cost-section').style.display = 'none';
+  ['btn-1','btn-2','btn-3'].forEach(id => document.getElementById(id).disabled = true);
+  document.getElementById('progress-wrap').style.display = 'block';
+  goStep(1);
+}
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+renderProgress(1);
+renderIssues();
+renderActions();
+loadData();
+</script>
+</body>
+</html>
