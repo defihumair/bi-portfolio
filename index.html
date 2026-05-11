@@ -232,29 +232,17 @@
       <div class="iac-section">
         <div class="iac-label">⚠️ What is the issue?</div>
         <div class="iac-options" id="issue-options">
-          <div class="iac-opt" onclick="selectIssue(this,'Not working','danger')">
+          <div class="iac-opt" onclick="selectIssue(this,'Not Working','danger')">
             <div class="iac-opt-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="#C13A2B"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.5 4.5 0 1 0 8.5 9.5c0 .66.13 1.29.37 1.87"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
             </div>
-            <div class="iac-opt-text"><strong>Not working</strong><span>Completely off</span></div>
+            <div class="iac-opt-text"><strong>Not Working</strong><span>Light completely off</span></div>
           </div>
-          <div class="iac-opt" onclick="selectIssue(this,'Flickering','warning')">
+          <div class="iac-opt" onclick="selectIssue(this,'Dim / Flickering','warning')">
             <div class="iac-opt-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             </div>
-            <div class="iac-opt-text"><strong>Flickering</strong><span>Unstable / flashing</span></div>
-          </div>
-          <div class="iac-opt" onclick="selectIssue(this,'Dim / weak','warning')">
-            <div class="iac-opt-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg>
-            </div>
-            <div class="iac-opt-text"><strong>Dim / weak</strong><span>Below full brightness</span></div>
-          </div>
-          <div class="iac-opt" onclick="selectIssue(this,'Damaged','danger')">
-            <div class="iac-opt-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#C13A2B"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <div class="iac-opt-text"><strong>Damaged</strong><span>Physical damage</span></div>
+            <div class="iac-opt-text"><strong>Dim / Flickering</strong><span>Low brightness or flashing</span></div>
           </div>
         </div>
       </div>
@@ -508,16 +496,24 @@ function setFlow(flow) {
   document.getElementById('flow-btn-report').classList.toggle('active', flow === 'report');
   document.getElementById('flow-btn-action').classList.toggle('active', flow === 'action');
 
-  // Show/hide action section and cost
   const isAction = flow === 'action';
-  document.getElementById('action-section').style.display = isAction ? 'block' : 'none';
-  document.getElementById('cost-section').style.display   = isAction ? 'block' : 'none';
 
-  // Reset action + cost when switching back to report
+  // Show issue card only for Report flow
+  document.getElementById('issue-card').style.display  = isAction ? 'none' : 'block';
+  // Show action card only for Action flow
+  document.getElementById('action-card').style.display = isAction ? 'block' : 'none';
+  // Show cost only for Action flow
+  document.getElementById('cost-section').style.display = isAction ? 'block' : 'none';
+
+  // Reset stale selections when switching
   if (flow === 'report') {
     state.action = null; state.actionBadge = null;
     document.querySelectorAll('#action-options .iac-opt').forEach(x => x.classList.remove('selected'));
     document.getElementById('cost-input').value = '';
+  } else {
+    // Switching to action — clear issue selection (not needed)
+    state.issue = null; state.issueSeverity = null;
+    document.querySelectorAll('#issue-options .iac-opt').forEach(x => x.classList.remove('selected'));
   }
 
   checkStep3();
@@ -545,11 +541,13 @@ function checkStep3() {
   const role = document.getElementById('role-input').value;
   const cost = document.getElementById('cost-input').value.trim();
 
-  let ok = state.issue && name && role;
-
-  if (state.flow === 'action') {
-    // Action flow: also needs action selected + cost filled
-    ok = ok && state.action && cost !== '';
+  let ok = false;
+  if (state.flow === 'report') {
+    // Report: issue + name + role required
+    ok = !!(state.issue && name && role);
+  } else {
+    // Action: action + cost + name + role required (no issue needed)
+    ok = !!(state.action && cost !== '' && name && role);
   }
 
   document.getElementById('btn-3').disabled = !ok;
