@@ -203,11 +203,12 @@
 
   <!-- STEP 2: Light -->
   <div class="step" id="step-2">
-    <div class="step-heading"><h2>Select the light</h2><p>Tap the faulty light ID — use search to find it fast</p></div>
+    <div class="step-heading"><h2>Select the lights</h2><p>Tap one or more faulty light IDs — use search to find them fast</p></div>
     <div class="search-wrap">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input class="search-input" type="text" id="light-search" placeholder="Search e.g. 05-F or N-07…" oninput="filterLights()">
     </div>
+    <div id="selected-count-bar" style="display:none; background:var(--accent-bg); border:1.5px solid var(--accent-light); border-radius:var(--radius); padding:8px 14px; margin-bottom:10px; font-size:13px; color:var(--accent); font-weight:600;"></div>
     <div class="lights-scroll" id="lights-scroll"></div>
     <div class="btn-row">
       <button class="btn-ghost" onclick="goStep(1)">← Back</button>
@@ -309,12 +310,12 @@
     <div class="summary-card">
       <div class="summary-header">
         <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <span>Report summary</span>
+        <span>Fault report summary</span>
       </div>
       <div class="summary-body">
         <div class="summary-row"><span class="summary-key">Type</span><span id="s-type-badge">—</span></div>
         <div class="summary-row"><span class="summary-key">Zone</span><span class="summary-val" id="s-zone">—</span></div>
-        <div class="summary-row"><span class="summary-key">Light ID</span><span class="summary-val" id="s-light">—</span></div>
+        <div class="summary-row"><span class="summary-key">Light ID(s)</span><span class="summary-val" id="s-light" style="text-align:right;max-width:70%;word-break:break-all;font-size:12px">—</span></div>
         <div class="summary-row" id="issue-summary-row"><span class="summary-key">Issue</span><span id="s-issue-badge">—</span></div>
         <div class="summary-row" id="action-summary-row" style="display:none"><span class="summary-key">Action taken</span><span id="s-action-badge">—</span></div>
         <div class="summary-row" id="cost-summary-row" style="display:none"><span class="summary-key">Cost</span><span class="summary-val" id="s-cost">—</span></div>
@@ -335,7 +336,7 @@
     <div class="success-screen">
       <div class="success-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
       <h2>Report submitted!</h2>
-      <p>Report logged for</p>
+      <p>Fault logged for</p>
       <div class="success-light-badge" id="done-light-id">—</div>
       <div class="success-meta">
         <div class="success-meta-row"><span>Type</span><span id="done-type">—</span></div>
@@ -378,8 +379,8 @@ const CONFIG = {
 const STEPS = ['Shed', 'Light', 'Issue & Action', 'Review'];
 let SHED_DATA = {}, allLights = [];
 let state = {
-  shed: null, light: null,
-  flow: 'report',            // 'report' or 'action'
+  shed: null, lights: [],      // array for multi-select
+  flow: 'report',
   issue: null, issueSeverity: null,
   action: null, actionBadge: null
 };
@@ -470,13 +471,25 @@ function renderLights(filter) {
     g.className = 'lights-grid';
     ids.forEach(id => {
       const t = document.createElement('div');
-      t.className = 'light-tile' + (state.light === id ? ' selected' : '');
+      t.className = 'light-tile' + (state.lights.includes(id) ? ' selected' : '');
       t.innerHTML = `<span>${id}</span>`;
       t.onclick = () => {
-        document.querySelectorAll('.light-tile').forEach(x => x.classList.remove('selected'));
-        t.classList.add('selected');
-        state.light = id;
-        document.getElementById('btn-2').disabled = false;
+        if (state.lights.includes(id)) {
+          state.lights = state.lights.filter(l => l !== id);
+          t.classList.remove('selected');
+        } else {
+          state.lights.push(id);
+          t.classList.add('selected');
+        }
+        const count = state.lights.length;
+        const bar = document.getElementById('selected-count-bar');
+        if (count > 0) {
+          bar.style.display = 'block';
+          bar.textContent = count === 1 ? '✓ 1 light selected' : `✓ ${count} lights selected`;
+        } else {
+          bar.style.display = 'none';
+        }
+        document.getElementById('btn-2').disabled = count === 0;
       };
       g.appendChild(t);
     });
@@ -565,7 +578,7 @@ function fillSummary() {
 
   document.getElementById('s-type-badge').innerHTML = `<span class="badge ${typeBadge}">${typeLabel}</span>`;
   document.getElementById('s-zone').textContent  = state.shed;
-  document.getElementById('s-light').textContent = state.light;
+  document.getElementById('s-light').textContent = state.lights.join(', ');
   document.getElementById('s-name').textContent  = name;
   document.getElementById('s-role').textContent  = role;
   document.getElementById('s-time').textContent  = ts;
@@ -599,7 +612,7 @@ function goStep(n) {
   document.getElementById(n === 'done' ? 'step-done' : 'step-' + n).classList.add('active');
   if (n >= 1 && n <= 4) renderProgress(n);
   document.getElementById('progress-wrap').style.display = (n === 'done') ? 'none' : 'block';
-  if (n === 2) { document.getElementById('light-search').value = ''; renderLights(''); }
+  if (n === 2) { document.getElementById('light-search').value = ''; renderLights(''); document.getElementById('selected-count-bar').style.display='none'; }
   if (n === 4) fillSummary();
   window.scrollTo(0, 0);
 }
@@ -613,50 +626,53 @@ function submitForm() {
   const ts    = new Date().toLocaleString('en-PK', { dateStyle:'medium', timeStyle:'short' });
   const isAction = state.flow === 'action';
 
-  const payload = {
-    Timestamp:    ts,
-    Type:         isAction ? 'Action Taken' : 'Issue Report',
-    Zone:         state.shed,
-    Light_ID:     state.light,
-    Issue:        state.issue,
-    Action:       isAction ? state.action : '',
-    Cost_PKR:     isAction && cost ? Number(cost) : '',
-    Name:         name,
-    Role:         role,
-    Notes:        notes
-  };
-
   document.getElementById('submitting-overlay').style.display = 'flex';
 
-  const doFinish = () => {
+  // Send one row per selected light
+  const promises = state.lights.map(lightId => {
+    const payload = {
+      Timestamp: ts,
+      Type:      isAction ? 'Action Taken' : 'Issue Report',
+      Zone:      state.shed,
+      Light_ID:  lightId,
+      Issue:     isAction ? '' : state.issue,
+      Action:    isAction ? state.action : '',
+      Cost_PKR:  isAction && cost ? Number(cost) : '',
+      Name:      name,
+      Role:      role,
+      Notes:     notes
+    };
+    return fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+      method:  'POST',
+      mode:    'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    }).catch(e => console.error('Submit error:', e));
+  });
+
+  Promise.allSettled(promises).finally(() => {
     document.getElementById('submitting-overlay').style.display = 'none';
-    document.getElementById('done-light-id').textContent = state.light;
-    document.getElementById('done-type').textContent     = isAction ? 'Action Taken' : 'Issue Report';
-    document.getElementById('done-shed').textContent     = state.shed;
-    document.getElementById('done-issue').textContent    = state.issue;
-    document.getElementById('done-name').textContent     = name;
-    document.getElementById('done-time').textContent     = ts;
+    const count = state.lights.length;
+    document.getElementById('done-light-id').textContent = count === 1
+      ? state.lights[0]
+      : `${count} lights`;
+    document.getElementById('done-type').textContent  = isAction ? 'Action Taken' : 'Issue Report';
+    document.getElementById('done-shed').textContent  = state.shed;
+    document.getElementById('done-issue').textContent = state.issue || '—';
+    document.getElementById('done-name').textContent  = name;
+    document.getElementById('done-time').textContent  = ts;
     document.getElementById('done-action-row').style.display = isAction ? 'flex' : 'none';
     if (isAction) document.getElementById('done-action').textContent = state.action;
     const hasCost = isAction && cost !== '';
     document.getElementById('done-cost-row').style.display = hasCost ? 'flex' : 'none';
     if (hasCost) document.getElementById('done-cost').textContent = `PKR ${Number(cost).toLocaleString()}`;
     goStep('done');
-  };
-
-  fetch(CONFIG.GOOGLE_SCRIPT_URL, {
-    method:  'POST',
-    mode:    'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload)
-  })
-  .catch(e => console.error('Submit error:', e))
-  .finally(doFinish);
+  });
 }
 
 // ── Reset ──────────────────────────────────────────────────
 function resetForm() {
-  state = { shed:null, light:null, flow:'report', issue:null, issueSeverity:null, action:null, actionBadge:null };
+  state = { shed:null, lights:[], flow:'report', issue:null, issueSeverity:null, action:null, actionBadge:null };
   document.querySelectorAll('.shed-tile,.iac-opt').forEach(t => t.classList.remove('selected'));
   ['name-input','role-input','cost-input','notes-input'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('action-section').style.display = 'none';
