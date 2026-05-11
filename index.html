@@ -225,10 +225,8 @@
       <button class="flow-btn" id="flow-btn-action" onclick="setFlow('action')">🔧 Action Taken</button>
     </div>
 
-    <!-- Issue + Action card -->
-    <div class="issue-action-card">
-
-      <!-- Issue — always shown -->
+    <!-- Issue card — Report flow only -->
+    <div class="issue-action-card" id="issue-card">
       <div class="iac-section">
         <div class="iac-label">⚠️ What is the issue?</div>
         <div class="iac-options" id="issue-options">
@@ -246,22 +244,23 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Action — only shown in Action flow -->
-      <div class="iac-section" id="action-section" style="display:none">
+    <!-- Action card — Action flow only -->
+    <div class="issue-action-card" id="action-card" style="display:none">
+      <div class="iac-section">
         <div class="iac-label">🔧 Action taken on this light</div>
         <div class="iac-options" id="action-options">
           <div class="iac-opt" onclick="selectAction(this,'Repaired Light','badge-warning')">
             <div class="iac-opt-icon" style="font-size:18px">🔧</div>
-            <div class="iac-opt-text"><strong>Repaired Light</strong><span>Fixed in place</span></div>
+            <div class="iac-opt-text"><strong>Repaired Light</strong><span>Removed fault light &amp; repaired</span></div>
           </div>
           <div class="iac-opt" onclick="selectAction(this,'New Light Installed','badge-success')">
             <div class="iac-opt-icon" style="font-size:18px">💡</div>
-            <div class="iac-opt-text"><strong>New Light Installed</strong><span>Old removed, new fitted</span></div>
+            <div class="iac-opt-text"><strong>New Light</strong><span>Removed fault light &amp; installed new</span></div>
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- Cost — only shown in Action flow, mandatory -->
