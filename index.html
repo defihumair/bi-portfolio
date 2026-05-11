@@ -315,7 +315,7 @@
         <div class="summary-row"><span class="summary-key">Type</span><span id="s-type-badge">—</span></div>
         <div class="summary-row"><span class="summary-key">Zone</span><span class="summary-val" id="s-zone">—</span></div>
         <div class="summary-row"><span class="summary-key">Light ID</span><span class="summary-val" id="s-light">—</span></div>
-        <div class="summary-row"><span class="summary-key">Issue</span><span id="s-issue-badge">—</span></div>
+        <div class="summary-row" id="issue-summary-row"><span class="summary-key">Issue</span><span id="s-issue-badge">—</span></div>
         <div class="summary-row" id="action-summary-row" style="display:none"><span class="summary-key">Action taken</span><span id="s-action-badge">—</span></div>
         <div class="summary-row" id="cost-summary-row" style="display:none"><span class="summary-key">Cost</span><span class="summary-val" id="s-cost">—</span></div>
         <div class="summary-row"><span class="summary-key">Reported by</span><span class="summary-val" id="s-name">—</span></div>
@@ -367,10 +367,10 @@ const CONFIG = {
   GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzDSDzMH9jISXvgpUwZpJG03hYZfEHgV5roZNKdXjtTD2BhTbGKeIwaz3k2oETvqoFN/exec',
   SHED_ICONS: {
     'Shed 1': '🏭',
-    'Shed 3': '🏭',
+    'Shed 3': '🏗️',
     'Shed 4': '🏭',
     'Shed 6': '🏭',
-    'Unicef': '🏭'
+    'Unicef': '🤝'
   }
 };
 // ══════════════════════════════════════════════════════════
@@ -437,7 +437,6 @@ function renderSheds() {
     const tile = document.createElement('div');
     tile.className = 'shed-tile';
     tile.innerHTML = `
-      <div class="shed-tile-icon">${CONFIG.SHED_ICONS[name] || '🏭'}</div>
       <div class="shed-tile-name">${name}</div>
       <div class="shed-tile-count">${lights.length} lights</div>`;
     tile.onclick = () => {
@@ -571,10 +570,14 @@ function fillSummary() {
   document.getElementById('s-role').textContent  = role;
   document.getElementById('s-time').textContent  = ts;
 
-  const iBadge = state.issueSeverity === 'danger' ? 'badge-danger' : 'badge-warning';
-  document.getElementById('s-issue-badge').innerHTML = `<span class="badge ${iBadge}">${state.issue}</span>`;
+  // Issue row — only in Report flow
+  document.getElementById('issue-summary-row').style.display = isAction ? 'none' : 'flex';
+  if (!isAction && state.issue) {
+    const iBadge = state.issueSeverity === 'danger' ? 'badge-danger' : 'badge-warning';
+    document.getElementById('s-issue-badge').innerHTML = `<span class="badge ${iBadge}">${state.issue}</span>`;
+  }
 
-  // Action row — only in action flow
+  // Action row — only in Action flow
   document.getElementById('action-summary-row').style.display = isAction ? 'flex' : 'none';
   if (isAction && state.action) {
     document.getElementById('s-action-badge').innerHTML = `<span class="badge ${state.actionBadge}">${state.action}</span>`;
