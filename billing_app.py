@@ -31,11 +31,11 @@ st.divider()
 st.subheader("📂 2. Upload Files")
 col1, col2, col3 = st.columns(3)
 with col1:
-    club_file = st.file_uploader("Upload Club Data (CSV)", type=['csv'])
+    club_file = st.file_uploader("1. Upload Club Data (CSV)", type=['csv'])
 with col2:
-    vendor_file = st.file_uploader("Upload Vendor Invoice (CSV)", type=['csv'])
+    vendor_file = st.file_uploader("2. Upload Vendor Invoice (CSV)", type=['csv'])
 with col3:
-    template_file = st.file_uploader("Upload Blank Excel Template", type=['xlsx'])
+    template_file = st.file_uploader("3. Upload Blank Excel Template", type=['xlsx'])
 
 st.divider()
 
@@ -150,6 +150,29 @@ if club_file and vendor_file and template_file:
                     sheet[f"{qty_col}{target_row}"] = qty
                     sheet[f"{amt_col}{target_row}"] = amount
 
+            # ---------------------------------------------------------
+            # --- FORMULA INJECTION LOGIC (ROWS 26, 27, 28) ---
+            # Python writes the actual Excel formulas into the final sheet
+            
+            # SHED-1 (Amount Column is F)
+            sheet['F26'] = "=SUM(F11:F25)"
+            sheet['F27'] = "=F26*0.15"
+            sheet['F28'] = "=F26+F27"
+            
+            # SHED-4 (Amount Column is L)
+            sheet['L26'] = "=SUM(L11:L25)"
+            sheet['L27'] = "=L26*0.15"
+            sheet['L28'] = "=L26+L27"
+            
+            # SHED-6 (Amount Column is R)
+            sheet['R26'] = "=SUM(R11:R25)"
+            sheet['R27'] = "=R26*0.15"
+            sheet['R28'] = "=R26+R27"
+            
+            # COMMERCIAL (Amount Column is X)
+            sheet['X26'] = "=SUM(X11:X25)"
+            sheet['X27'] = "=X26*0.15"
+            sheet['X28'] = "=X26+X27"
             # ---------------------------------------------------------
             
             # Save the modified workbook to a virtual file in memory
