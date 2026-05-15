@@ -2,20 +2,40 @@ import streamlit as st
 import pandas as pd
 import openpyxl
 from io import BytesIO
+import datetime
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Reconciliation Portal", layout="wide")
 st.title("📦 Logistics Billing Reconciliation Portal")
 st.markdown("Upload your weekly files below to automatically reconcile and generate the payable invoice.")
 
+# --- INVOICE DETAILS (NEW) ---
+st.subheader("📝 1. Invoice Details")
+col_date, col_week, col_year = st.columns(3)
+
+with col_date:
+    default_date = datetime.datetime.now().strftime("%d-%b-%Y")
+    invoice_date = st.text_input("Invoice Date", value=default_date)
+
+with col_week:
+    week_num = st.number_input("Week Number (e.g., 19)", min_value=1, max_value=52, value=19)
+
+with col_year:
+    year_num = st.number_input("Year (e.g., 2026)", min_value=2020, max_value=2050, value=2026)
+
+invoice_suffix = f"{week_num}{str(year_num)[-2:]}"
+
+st.divider()
+
 # --- UPLOAD ZONE ---
+st.subheader("📂 2. Upload Files")
 col1, col2, col3 = st.columns(3)
 with col1:
-    club_file = st.file_uploader("1. Upload Club Data (CSV)", type=['csv'])
+    club_file = st.file_uploader("Upload Club Data (CSV)", type=['csv'])
 with col2:
-    vendor_file = st.file_uploader("2. Upload Vendor Invoice (CSV)", type=['csv'])
+    vendor_file = st.file_uploader("Upload Vendor Invoice (CSV)", type=['csv'])
 with col3:
-    template_file = st.file_uploader("3. Upload Blank Excel Template", type=['xlsx'])
+    template_file = st.file_uploader("Upload Blank Excel Template", type=['xlsx'])
 
 st.divider()
 
@@ -52,7 +72,7 @@ if club_file and vendor_file and template_file:
     st.divider()
     
     # --- HUMAN IN THE LOOP: APPROVAL ---
-    st.subheader("⚙️ Finalize & Generate")
+    st.subheader("⚙️ 3. Finalize & Generate")
     
     if st.button("APPROVE & GENERATE PAYABLE INVOICE", type="primary"):
         with st.spinner("Injecting data into Excel Template..."):
@@ -61,31 +81,56 @@ if club_file and vendor_file and template_file:
             wb = openpyxl.load_workbook(template_file)
             sheet = wb.active
             
+            # --- HEADER INJECTION LOGIC (FINAL VERIFIED COORDINATES) ---
+            
+            week_header_text = f"WEEK {week_num}, {year_num}"   # e.g., "WEEK 19, 2026"
+            
+            # --- SHED-1 ---
+            sheet['F4'] = invoice_date                          # Date value next to E4
+            sheet['F5'] = f"BCO/PW1/{invoice_suffix}"           # Invoice value next to E5
+            sheet['B10'] = week_header_text                     # Week & Year Header
+            
+            # --- SHED-4 ---
+            sheet['L4'] = invoice_date
+            sheet['L5'] = f"BCO/PW4/{invoice_suffix}"
+            sheet['H10'] = week_header_text
+            
+            # --- SHED-6 ---
+            sheet['R4'] = invoice_date
+            sheet['R5'] = f"BCO/PW6/{invoice_suffix}"
+            sheet['N10'] = week_header_text
+            
+            # --- COMMERCIAL ---
+            sheet['X4'] = invoice_date
+            sheet['X5'] = f"BCO/PWC1/{invoice_suffix}"
+            sheet['T10'] = week_header_text
+
             # --- DATA INJECTION LOGIC ---
             
             ROW_MAP = {
-                "No. of Containers": 9,
-                "Total CBM": 10,
-                "Remaining CBM {less(Levis, Removal & Pallets cargo)}": 11,
-                "Total Levis OB CBM": 12,
-                "Levis IB (Without Conveyor)": 13,
-                "Levis IB Conveyor CBM(by Bahadur)": 14,
-                "CY Cross Stuffing": 15,
-                "Commercial, LCL, TPP, Cargo Removal": 16,
-                "CARGO SHIFTING + SETTING CBM": 17,
-                "Sorting Charges (Per Carton)": 18,
-                "Sorting Charges LEVI'S (Per Carton)": 19,
-                "Sunday Working": 20,
-                "Hanging Cargo Charges": 21,
-                "Labelling/Stickers Charges": 22,
-                "CARTONS CHANGE": 23
+                "No. of Containers": 11,
+                "Total CBM": 12,
+                "Remaining CBM {less(Levis, Removal & Pallets cargo)}": 13,
+                "Total Levis OB CBM": 14,
+                "Levis IB (Without Conveyor)": 15,
+                "Levis IB Conveyor CBM(by Bahadur)": 16,
+                "CY Cross Stuffing": 17,
+                "Commercial, LCL, TPP, Cargo Removal": 18,
+                "CARGO SHIFTING + SETTING CBM": 19,
+                "Sorting Charges (Per Carton)": 20,
+                "Sorting Charges LEVI'S (Per Carton)": 21,
+                "Sunday Working": 22,
+                "Hanging Cargo Charges": 23,
+                "Labelling/Stickers Charges": 24,
+                "CARTONS CHANGE": 25
             }
 
+            # UPDATED COLUMN MAP 
             COL_MAP = {
-                "Shed-1": {"qty": "C", "amt": "E"},
-                "Shed-4": {"qty": "H", "amt": "J"},
-                "Shed-6": {"qty": "M", "amt": "O"},
-                "Commercial": {"qty": "R", "amt": "T"}
+                "Shed-1": {"qty": "D", "amt": "F"},
+                "Shed-4": {"qty": "J", "amt": "L"},
+                "Shed-6": {"qty": "P", "amt": "R"},
+                "Commercial": {"qty": "V", "amt": "X"}
             }
 
             # The Injection Loop 
@@ -97,8 +142,6 @@ if club_file and vendor_file and template_file:
                 
                 # Check if this row's billing head and facility exist in our map
                 if billing_head in ROW_MAP and facility in COL_MAP:
-                    
-                    # Get the GPS Coordinates
                     target_row = ROW_MAP[billing_head]
                     qty_col = COL_MAP[facility]['qty']
                     amt_col = COL_MAP[facility]['amt']
@@ -120,7 +163,7 @@ if club_file and vendor_file and template_file:
             st.download_button(
                 label="⬇️ DOWNLOAD FINAL INVOICE",
                 data=virtual_workbook,
-                file_name="FINAL_Payable_Invoice_Bahadur_W19.xlsx",
+                file_name=f"FINAL_Payable_Invoice_Bahadur_W{week_num}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 else:
