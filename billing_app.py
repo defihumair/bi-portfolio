@@ -48,28 +48,23 @@ if club_file and vendor_file and template_file:
     
     # --- DATA TRANSFORMATION ENGINE ---
     try:
-        # A. Clean Vendor Data
         df_vendor = df_vendor_raw.rename(columns={'Sum of Qty': 'Vendor Qty', 'Sum of Amount': 'Vendor Amount'})
         
-        # B. Melt (Unpivot) Club Data from Wide to Long
         exclude_cols = ['Location', 'Account', 'Total Payment (WITHOUT TAX)']
         value_vars = [col for col in df_club_raw.columns if col not in exclude_cols]
         
         df_club_long = pd.melt(df_club_raw, id_vars=['Location', 'Account'], value_vars=value_vars, 
                                var_name='Billing Head', value_name='Internal Qty')
         
-        # Ensure numerical formats
         df_club_long['Internal Qty'] = pd.to_numeric(df_club_long['Internal Qty'], errors='coerce').fillna(0)
         
-        # C. Map the 'Facility'
         df_club_long['Facility'] = df_club_long.apply(
             lambda x: 'Commercial' if str(x['Account']).strip() == 'Commercial' else str(x['Location']).strip(), axis=1
         )
         
-        # D. Aggregate the Volumes
         df_club = df_club_long.groupby(['Billing Head', 'Facility'], as_index=False)['Internal Qty'].sum()
         
-        # E. Calculate Internal Amount using Contract Rates
+        # UPDATED RATE MAP (Levi's is 1.1)
         RATE_MAP = {
             "Remaining CBM {less(Levis, Removal & Pallets cargo)}": 92,
             "Total Levis OB CBM": 46,
@@ -89,17 +84,15 @@ if club_file and vendor_file and template_file:
         df_club['Internal Rate'] = df_club['Billing Head'].map(RATE_MAP).fillna(0)
         df_club['Internal Amount'] = df_club['Internal Qty'] * df_club['Internal Rate']
 
-        # 2. Reconcile (Merge)
         df_recon = pd.merge(df_club, df_vendor, on=['Billing Head', 'Facility'], how='outer').fillna(0)
         
-        # Calculate Raw Variances
         df_recon['Volume Variance'] = df_recon['Internal Qty'] - df_recon['Vendor Qty']
         df_recon['Amount Variance'] = df_recon['Internal Amount'] - df_recon['Vendor Amount']
         
-        # --- BUSINESS RULES ENGINE ---
+        # --- BUSINESS RULES ENGINE (Facility by Facility) ---
         def apply_audit_rules(row):
-            int_amt = float(row['Internal Amount'])
-            ven_amt = float(row['Vendor Amount'])
+            int_amt = round(float(row['Internal Amount']), 2)
+            ven_amt = round(float(row['Vendor Amount']), 2)
             int_qty = float(row['Internal Qty'])
             ven_qty = float(row['Vendor Qty'])
 
@@ -118,7 +111,6 @@ if club_file and vendor_file and template_file:
             else:
                 return pd.Series([ven_qty, ven_amt, "Proceed with Vendor Billed"])
 
-        # Apply the rules
         df_recon[['Approved Qty', 'Payable Amount', 'Remarks']] = df_recon.apply(apply_audit_rules, axis=1)
         
         # --- 3. DASHBOARD TABULAR RECONSTRUCTION ---
@@ -131,45 +123,58 @@ if club_file and vendor_file and template_file:
         for bh in billing_heads:
             bh_data = df_recon[df_recon['Billing Head'] == bh]
             
-            # Start row with Activity
             row_data = {('Activity', 'Billing Head'): bh}
             row_data[('Club Data', 'Rate')] = RATE_MAP.get(bh, 0)
             
-            # Build Club Data Section
             club_vol = 0
             for f in facilities:
                 val = bh_data[bh_data['Facility'] == f]['Internal Qty'].sum()
                 row_data[('Club Data', f)] = val
                 club_vol += val
             row_data[('Club Data', 'Total Volume')] = club_vol
-            row_data[('Club Data', 'Internal Amount')] = bh_data['Internal Amount'].sum()
             
-            # Build Vendor Data Section
+            total_int_amt = round(bh_data['Internal Amount'].sum(), 2)
+            row_data[('Club Data', 'Internal Amount')] = total_int_amt
+            
             vendor_vol = 0
             for f in facilities:
                 val = bh_data[bh_data['Facility'] == f]['Vendor Qty'].sum()
                 row_data[('Vendor Invoice Data', f)] = val
                 vendor_vol += val
             row_data[('Vendor Invoice Data', 'Vendor Volume')] = vendor_vol
-            row_data[('Vendor Invoice Data', 'Vendor Amount')] = bh_data['Vendor Amount'].sum()
             
-            # Build Variance Analysis Section
+            total_ven_amt = round(bh_data['Vendor Amount'].sum(), 2)
+            row_data[('Vendor Invoice Data', 'Vendor Amount')] = total_ven_amt
+            
             row_data[('Variance Analysis', 'Volume Variance')] = bh_data['Volume Variance'].sum()
             row_data[('Variance Analysis', 'Amount Variance')] = bh_data['Amount Variance'].sum()
             row_data[('Variance Analysis', 'Approved Volume')] = bh_data['Approved Qty'].sum()
             row_data[('Variance Analysis', 'Payable Amount')] = bh_data['Payable Amount'].sum()
-            row_data[('Variance Analysis', 'Remarks')] = bh_data['Remarks'].iloc[0] if not bh_data.empty else ""
             
+            # FIXED REMARKS LOGIC (Now calculates accurately for the Dashboard row totals)
+            if total_int_amt == 0 and total_ven_amt == 0:
+                if vendor_vol > club_vol:
+                    summary_remark = "Vendor Overbilled (Vol) – Adjusted to tracker"
+                elif vendor_vol < club_vol:
+                    summary_remark = "Vendor Underbilled (Vol) – Adjusted to vendor"
+                else:
+                    summary_remark = "Proceed with Vendor Billed"
+            else:
+                if total_ven_amt > total_int_amt:
+                    summary_remark = "Vendor Overbilled – Adjusted as per tracker volume"
+                elif total_ven_amt < total_int_amt:
+                    summary_remark = "Vendor Underbilled – Adjusted as per vendor volumes"
+                else:
+                    summary_remark = "Proceed with Vendor Billed"
+                    
+            row_data[('Variance Analysis', 'Remarks')] = summary_remark
             display_rows.append(row_data)
 
-        # Convert to a Multi-Index Pandas DataFrame
         df_display = pd.DataFrame(display_rows)
         df_display.columns = pd.MultiIndex.from_tuples(df_display.columns)
         
-        # Display the interactive tabular dataframe
         st.dataframe(df_display, use_container_width=True)
         
-        # Financial Summary metrics
         met1, met2, met3 = st.columns(3)
         met1.metric("Total Internal Amount", f"PKR {df_recon['Internal Amount'].sum():,.2f}")
         met2.metric("Total Vendor Invoice", f"PKR {df_recon['Vendor Amount'].sum():,.2f}")
@@ -191,7 +196,6 @@ if club_file and vendor_file and template_file:
             wb = openpyxl.load_workbook(template_file)
             sheet = wb.active
             
-            # --- HEADER INJECTION LOGIC ---
             week_header_text = f"WEEK {week_num}, {year_num}" 
             
             sheet['F4'] = invoice_date; sheet['F5'] = f"BCO/PW1/{invoice_suffix}"; sheet['B10'] = week_header_text
@@ -199,7 +203,6 @@ if club_file and vendor_file and template_file:
             sheet['R4'] = invoice_date; sheet['R5'] = f"BCO/PW6/{invoice_suffix}"; sheet['N10'] = week_header_text
             sheet['X4'] = invoice_date; sheet['X5'] = f"BCO/PWC1/{invoice_suffix}"; sheet['T10'] = week_header_text
 
-            # --- DATA INJECTION LOGIC ---
             ROW_MAP = {
                 "No. of Containers": 11, "Total CBM": 12, "Remaining CBM {less(Levis, Removal & Pallets cargo)}": 13,
                 "Total Levis OB CBM": 14, "Levis IB (Without Conveyor)": 15, "Levis IB Conveyor CBM(by Bahadur)": 16,
@@ -227,7 +230,6 @@ if club_file and vendor_file and template_file:
                     sheet[f"{qty_col}{target_row}"] = qty
                     sheet[f"{amt_col}{target_row}"] = amount
 
-            # --- FORMULA INJECTION LOGIC ---
             sheet['F26'] = "=SUM(F11:F25)"; sheet['F27'] = "=F26*0.15"; sheet['F28'] = "=F26+F27"
             sheet['L26'] = "=SUM(L11:L25)"; sheet['L27'] = "=L26*0.15"; sheet['L28'] = "=L26+L27"
             sheet['R26'] = "=SUM(R11:R25)"; sheet['R27'] = "=R26*0.15"; sheet['R28'] = "=R26+R27"
