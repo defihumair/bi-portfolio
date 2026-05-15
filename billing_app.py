@@ -56,13 +56,59 @@ if club_file and vendor_file and template_file:
             wb = openpyxl.load_workbook(template_file)
             sheet = wb.active
             
-            # ---------------------------------------------------------
-            # DATA INJECTION LOGIC (Map your cells here!)
-            # Example:
-            shed1_data = df_recon[(df_recon['Billing Head'] == 'Remaining CBM') & (df_recon['Facility'] == 'Shed-1')]
-            if not shed1_data.empty:
-                sheet['L10'] = shed1_data['Vendor Amount'].values[0]
-            # ---------------------------------------------------------
+# --- DATA INJECTION LOGIC ---
+
+# 1. Map the Billing Heads to their exact Row Numbers in your Excel Template
+# (Note: If "No. of Containers" starts on Row 9 in your Excel file, keep this as is. 
+# If it starts on Row 10, just change the 9 to 10 and adjust the rest down by 1).
+ROW_MAP = {
+    "No. of Containers": 9,
+    "Total CBM": 10,
+    "Remaining CBM {less(Levis, Removal & Pallets cargo)}": 11,
+    "Total Levis OB CBM": 12,
+    "Levis IB (Without Conveyor)": 13,
+    "Levis IB Conveyor CBM(by Bahadur)": 14,
+    "CY Cross Stuffing": 15,
+    "Commercial, LCL, TPP, Cargo Removal": 16,
+    "CARGO SHIFTING + SETTING CBM": 17,
+    "Sorting Charges (Per Carton)": 18,
+    "Sorting Charges LEVI'S (Per Carton)": 19,
+    "Sunday Working": 20,
+    "Hanging Cargo Charges": 21,
+    "Labelling/Stickers Charges": 22,
+    "CARTONS CHANGE": 23
+}
+
+# 2. Map the Facility to their exact Qty and Amount Columns in Excel
+COL_MAP = {
+    "Shed-1": {"qty": "C", "amt": "E"},
+    "Shed-4": {"qty": "H", "amt": "J"},
+    "Shed-6": {"qty": "M", "amt": "O"},
+    "Commercial": {"qty": "R", "amt": "T"}
+}
+
+# 3. The Injection Loop (This does all the heavy lifting instantly)
+# We loop through your final Vendor Data exactly as you exported it
+for index, row in df_vendor.iterrows():
+    billing_head = row['Billing Head']
+    facility = row['Facility']
+    qty = row['Sum of Qty']
+    amount = row['Sum of Amount']
+    
+    # Check if this row's billing head and facility exist in our map
+    if billing_head in ROW_MAP and facility in COL_MAP:
+        
+        # Get the GPS Coordinates
+        target_row = ROW_MAP[billing_head]
+        qty_col = COL_MAP[facility]['qty']
+        amt_col = COL_MAP[facility]['amt']
+        
+        # INJECT THE DATA!
+        # Example: sheet['C11'] = 146
+        sheet[f"{qty_col}{target_row}"] = qty
+        sheet[f"{amt_col}{target_row}"] = amount
+
+# ---------------------------------------------------------
             
             # Save the modified workbook to a virtual file in memory
             virtual_workbook = BytesIO()
