@@ -42,14 +42,14 @@ st.divider()
 # --- PROCESSING ENGINE ---
 if club_file and vendor_file and template_file:
     
-    # 1. Read Raw Data
     df_club_raw = pd.read_csv(club_file)
     df_vendor_raw = pd.read_csv(vendor_file)
     
-    # --- DATA TRANSFORMATION ENGINE ---
     try:
+        # --- A. Clean Vendor Data ---
         df_vendor = df_vendor_raw.rename(columns={'Sum of Qty': 'Vendor Qty', 'Sum of Amount': 'Vendor Amount'})
         
+        # --- B. Melt (Unpivot) Club Data ---
         exclude_cols = ['Location', 'Account', 'Total Payment (WITHOUT TAX)']
         value_vars = [col for col in df_club_raw.columns if col not in exclude_cols]
         
@@ -58,13 +58,15 @@ if club_file and vendor_file and template_file:
         
         df_club_long['Internal Qty'] = pd.to_numeric(df_club_long['Internal Qty'], errors='coerce').fillna(0)
         
+        # --- C. Map the 'Facility' ---
         df_club_long['Facility'] = df_club_long.apply(
             lambda x: 'Commercial' if str(x['Account']).strip() == 'Commercial' else str(x['Location']).strip(), axis=1
         )
         
+        # --- D. Aggregate the Volumes ---
         df_club = df_club_long.groupby(['Billing Head', 'Facility'], as_index=False)['Internal Qty'].sum()
         
-        # UPDATED RATE MAP (Levi's is 1.1)
+        # --- E. Calculate Internal Amount using Contract Rates ---
         RATE_MAP = {
             "Remaining CBM {less(Levis, Removal & Pallets cargo)}": 92,
             "Total Levis OB CBM": 46,
@@ -84,29 +86,51 @@ if club_file and vendor_file and template_file:
         df_club['Internal Rate'] = df_club['Billing Head'].map(RATE_MAP).fillna(0)
         df_club['Internal Amount'] = df_club['Internal Qty'] * df_club['Internal Rate']
 
+        # --- F. Merge to Reconcile ---
         df_recon = pd.merge(df_club, df_vendor, on=['Billing Head', 'Facility'], how='outer').fillna(0)
         
         df_recon['Volume Variance'] = df_recon['Internal Qty'] - df_recon['Vendor Qty']
         df_recon['Amount Variance'] = df_recon['Internal Amount'] - df_recon['Vendor Amount']
         
-        # --- BUSINESS RULES ENGINE (Facility by Facility) ---
+        # --- G. MACRO BUSINESS RULES ENGINE (Line Item Level Audit) ---
+        # 1. First, calculate the GRAND TOTALS for each Billing Head
+        bh_totals = df_recon.groupby('Billing Head').agg(
+            Total_Int_Amt=('Internal Amount', 'sum'),
+            Total_Ven_Amt=('Vendor Amount', 'sum'),
+            Total_Int_Qty=('Internal Qty', 'sum'),
+            Total_Ven_Qty=('Vendor Qty', 'sum')
+        ).reset_index()
+
+        # 2. Merge these totals back into our main dataset so we can evaluate them
+        df_recon = pd.merge(df_recon, bh_totals, on='Billing Head')
+
+        # 3. Apply the rule based on the GRAND TOTAL, not the individual shed
         def apply_audit_rules(row):
-            int_amt = round(float(row['Internal Amount']), 2)
-            ven_amt = round(float(row['Vendor Amount']), 2)
+            # Evaluate using the Line Item Totals
+            total_int_amt = round(float(row['Total_Int_Amt']), 2)
+            total_ven_amt = round(float(row['Total_Ven_Amt']), 2)
+            total_int_qty = float(row['Total_Int_Qty'])
+            total_ven_qty = float(row['Total_Ven_Qty'])
+
+            # Apply using the Shed-Specific Data
+            int_amt = float(row['Internal Amount'])
+            ven_amt = float(row['Vendor Amount'])
             int_qty = float(row['Internal Qty'])
             ven_qty = float(row['Vendor Qty'])
 
-            if int_amt == 0 and ven_amt == 0:
-                if ven_qty > int_qty:
+            # Handle 0 Rate (Volume Tracking Only)
+            if total_int_amt == 0 and total_ven_amt == 0:
+                if total_ven_qty > total_int_qty:
                     return pd.Series([int_qty, int_amt, "Vendor Overbilled (Vol) – Adjusted to tracker"])
-                elif ven_qty < int_qty:
+                elif total_ven_qty < total_int_qty:
                     return pd.Series([ven_qty, ven_amt, "Vendor Underbilled (Vol) – Adjusted to vendor"])
                 else:
                     return pd.Series([ven_qty, ven_amt, "Proceed with Vendor Billed"])
 
-            if ven_amt > int_amt:
+            # Core Financial Audit
+            if total_ven_amt > total_int_amt:
                 return pd.Series([int_qty, int_amt, "Vendor Overbilled – Adjusted as per tracker volume"])
-            elif ven_amt < int_amt:
+            elif total_ven_amt < total_int_amt:
                 return pd.Series([ven_qty, ven_amt, "Vendor Underbilled – Adjusted as per vendor volumes"])
             else:
                 return pd.Series([ven_qty, ven_amt, "Proceed with Vendor Billed"])
@@ -126,48 +150,31 @@ if club_file and vendor_file and template_file:
             row_data = {('Activity', 'Billing Head'): bh}
             row_data[('Club Data', 'Rate')] = RATE_MAP.get(bh, 0)
             
+            # Internal Data
             club_vol = 0
             for f in facilities:
                 val = bh_data[bh_data['Facility'] == f]['Internal Qty'].sum()
                 row_data[('Club Data', f)] = val
                 club_vol += val
             row_data[('Club Data', 'Total Volume')] = club_vol
+            row_data[('Club Data', 'Internal Amount')] = bh_data['Internal Amount'].sum()
             
-            total_int_amt = round(bh_data['Internal Amount'].sum(), 2)
-            row_data[('Club Data', 'Internal Amount')] = total_int_amt
-            
+            # Vendor Data
             vendor_vol = 0
             for f in facilities:
                 val = bh_data[bh_data['Facility'] == f]['Vendor Qty'].sum()
                 row_data[('Vendor Invoice Data', f)] = val
                 vendor_vol += val
             row_data[('Vendor Invoice Data', 'Vendor Volume')] = vendor_vol
+            row_data[('Vendor Invoice Data', 'Vendor Amount')] = bh_data['Vendor Amount'].sum()
             
-            total_ven_amt = round(bh_data['Vendor Amount'].sum(), 2)
-            row_data[('Vendor Invoice Data', 'Vendor Amount')] = total_ven_amt
-            
+            # Variance & Approval Data
             row_data[('Variance Analysis', 'Volume Variance')] = bh_data['Volume Variance'].sum()
             row_data[('Variance Analysis', 'Amount Variance')] = bh_data['Amount Variance'].sum()
             row_data[('Variance Analysis', 'Approved Volume')] = bh_data['Approved Qty'].sum()
             row_data[('Variance Analysis', 'Payable Amount')] = bh_data['Payable Amount'].sum()
+            row_data[('Variance Analysis', 'Remarks')] = bh_data['Remarks'].iloc[0] # All sheds share the exact same remark now!
             
-            # FIXED REMARKS LOGIC (Now calculates accurately for the Dashboard row totals)
-            if total_int_amt == 0 and total_ven_amt == 0:
-                if vendor_vol > club_vol:
-                    summary_remark = "Vendor Overbilled (Vol) – Adjusted to tracker"
-                elif vendor_vol < club_vol:
-                    summary_remark = "Vendor Underbilled (Vol) – Adjusted to vendor"
-                else:
-                    summary_remark = "Proceed with Vendor Billed"
-            else:
-                if total_ven_amt > total_int_amt:
-                    summary_remark = "Vendor Overbilled – Adjusted as per tracker volume"
-                elif total_ven_amt < total_int_amt:
-                    summary_remark = "Vendor Underbilled – Adjusted as per vendor volumes"
-                else:
-                    summary_remark = "Proceed with Vendor Billed"
-                    
-            row_data[('Variance Analysis', 'Remarks')] = summary_remark
             display_rows.append(row_data)
 
         df_display = pd.DataFrame(display_rows)
