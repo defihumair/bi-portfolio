@@ -79,7 +79,7 @@ if club_file and vendor_file and template_file:
             "Commercial, LCL, TPP, Cargo Removal": 92,
             "CARGO SHIFTING + SETTING CBM": 46,
             "Sorting Charges (Per Carton)": 2,
-            "Sorting Charges LEVI'S (Per Carton)": 1,
+            "Sorting Charges LEVI'S (Per Carton)": 1.1,
             "Sunday Working": 46,
             "Hanging Cargo Charges": 1,
             "Labelling/Stickers Charges": 2,
