@@ -61,7 +61,7 @@ if club_file and vendor_file and template_file:
         # Ensure numerical formats
         df_club_long['Internal Qty'] = pd.to_numeric(df_club_long['Internal Qty'], errors='coerce').fillna(0)
         
-        # C. Map the 'Facility' (Combine Sheds 1, 4, 6 into 'Commercial' if Account is Commercial)
+        # C. Map the 'Facility'
         df_club_long['Facility'] = df_club_long.apply(
             lambda x: 'Commercial' if str(x['Account']).strip() == 'Commercial' else str(x['Location']).strip(), axis=1
         )
@@ -103,7 +103,6 @@ if club_file and vendor_file and template_file:
             int_qty = float(row['Internal Qty'])
             ven_qty = float(row['Vendor Qty'])
 
-            # Handle charges that don't have monetary amounts (like pure CBM tracking)
             if int_amt == 0 and ven_amt == 0:
                 if ven_qty > int_qty:
                     return pd.Series([int_qty, int_amt, "Vendor Overbilled (Vol) – Adjusted to tracker"])
@@ -112,7 +111,6 @@ if club_file and vendor_file and template_file:
                 else:
                     return pd.Series([ven_qty, ven_amt, "Proceed with Vendor Billed"])
 
-            # Core Financial Audit Logic (Always protect the company's money)
             if ven_amt > int_amt:
                 return pd.Series([int_qty, int_amt, "Vendor Overbilled – Adjusted as per tracker volume"])
             elif ven_amt < int_amt:
@@ -120,23 +118,56 @@ if club_file and vendor_file and template_file:
             else:
                 return pd.Series([ven_qty, ven_amt, "Proceed with Vendor Billed"])
 
-        # Apply the rules to create the final Payable columns
+        # Apply the rules
         df_recon[['Approved Qty', 'Payable Amount', 'Remarks']] = df_recon.apply(apply_audit_rules, axis=1)
         
-        # 3. Display Detailed Reconciliation Dashboard
+        # --- 3. DASHBOARD TABULAR RECONSTRUCTION ---
         st.subheader("📊 Recon & Audit Dashboard")
         
-        # Arrange columns to match your Excel layout perfectly
-        display_cols = [
-            'Billing Head', 'Facility', 
-            'Internal Qty', 'Internal Amount', 
-            'Vendor Qty', 'Vendor Amount', 
-            'Volume Variance', 'Amount Variance', 
-            'Approved Qty', 'Payable Amount', 'Remarks'
-        ]
+        facilities = ['Shed-1', 'Shed-4', 'Shed-6', 'Commercial']
+        billing_heads = df_recon['Billing Head'].unique()
+        display_rows = []
+
+        for bh in billing_heads:
+            bh_data = df_recon[df_recon['Billing Head'] == bh]
+            
+            # Start row with Activity
+            row_data = {('Activity', 'Billing Head'): bh}
+            row_data[('Club Data', 'Rate')] = RATE_MAP.get(bh, 0)
+            
+            # Build Club Data Section
+            club_vol = 0
+            for f in facilities:
+                val = bh_data[bh_data['Facility'] == f]['Internal Qty'].sum()
+                row_data[('Club Data', f)] = val
+                club_vol += val
+            row_data[('Club Data', 'Total Volume')] = club_vol
+            row_data[('Club Data', 'Internal Amount')] = bh_data['Internal Amount'].sum()
+            
+            # Build Vendor Data Section
+            vendor_vol = 0
+            for f in facilities:
+                val = bh_data[bh_data['Facility'] == f]['Vendor Qty'].sum()
+                row_data[('Vendor Invoice Data', f)] = val
+                vendor_vol += val
+            row_data[('Vendor Invoice Data', 'Vendor Volume')] = vendor_vol
+            row_data[('Vendor Invoice Data', 'Vendor Amount')] = bh_data['Vendor Amount'].sum()
+            
+            # Build Variance Analysis Section
+            row_data[('Variance Analysis', 'Volume Variance')] = bh_data['Volume Variance'].sum()
+            row_data[('Variance Analysis', 'Amount Variance')] = bh_data['Amount Variance'].sum()
+            row_data[('Variance Analysis', 'Approved Volume')] = bh_data['Approved Qty'].sum()
+            row_data[('Variance Analysis', 'Payable Amount')] = bh_data['Payable Amount'].sum()
+            row_data[('Variance Analysis', 'Remarks')] = bh_data['Remarks'].iloc[0] if not bh_data.empty else ""
+            
+            display_rows.append(row_data)
+
+        # Convert to a Multi-Index Pandas DataFrame
+        df_display = pd.DataFrame(display_rows)
+        df_display.columns = pd.MultiIndex.from_tuples(df_display.columns)
         
-        # Display the interactive dataframe
-        st.dataframe(df_recon[display_cols], use_container_width=True)
+        # Display the interactive tabular dataframe
+        st.dataframe(df_display, use_container_width=True)
         
         # Financial Summary metrics
         met1, met2, met3 = st.columns(3)
@@ -182,12 +213,11 @@ if club_file and vendor_file and template_file:
                 "Shed-6": {"qty": "P", "amt": "R"}, "Commercial": {"qty": "V", "amt": "X"}
             }
 
-            # The Injection Loop (NOW USING APPROVED QTY AND PAYABLE AMOUNT)
             for index, row in df_recon.iterrows():
                 billing_head = row['Billing Head']
                 facility = row['Facility']
-                qty = row['Approved Qty']        # Pulled from Rules Engine
-                amount = row['Payable Amount']   # Pulled from Rules Engine
+                qty = row['Approved Qty']        
+                amount = row['Payable Amount']   
                 
                 if billing_head in ROW_MAP and facility in COL_MAP:
                     target_row = ROW_MAP[billing_head]
