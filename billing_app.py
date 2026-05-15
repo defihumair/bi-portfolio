@@ -42,18 +42,53 @@ st.divider()
 # --- PROCESSING ENGINE ---
 if club_file and vendor_file and template_file:
     
-    # 1. Read Data
-    df_club = pd.read_csv(club_file)
-    df_vendor = pd.read_csv(vendor_file)
+    # 1. Read Raw Data
+    df_club_raw = pd.read_csv(club_file)
+    df_vendor_raw = pd.read_csv(vendor_file)
     
-    # Standardize Column Names (Handles slight variations in Power BI exports)
-    df_vendor = df_vendor.rename(columns={'Sum of Qty': 'Vendor Qty', 'Sum of Amount': 'Vendor Amount'})
-    df_club = df_club.rename(columns={'Internal Total Volume': 'Internal Qty'}) # Adjust if your Club Data uses a different Qty header
-    
-    # Ensure missing columns don't crash the script if headers vary
-    if 'Internal Qty' not in df_club.columns: df_club['Internal Qty'] = df_club.get('Qty', 0)
-    
+    # --- DATA TRANSFORMATION ENGINE ---
     try:
+        # A. Clean Vendor Data
+        df_vendor = df_vendor_raw.rename(columns={'Sum of Qty': 'Vendor Qty', 'Sum of Amount': 'Vendor Amount'})
+        
+        # B. Melt (Unpivot) Club Data from Wide to Long
+        exclude_cols = ['Location', 'Account', 'Total Payment (WITHOUT TAX)']
+        value_vars = [col for col in df_club_raw.columns if col not in exclude_cols]
+        
+        df_club_long = pd.melt(df_club_raw, id_vars=['Location', 'Account'], value_vars=value_vars, 
+                               var_name='Billing Head', value_name='Internal Qty')
+        
+        # Ensure numerical formats
+        df_club_long['Internal Qty'] = pd.to_numeric(df_club_long['Internal Qty'], errors='coerce').fillna(0)
+        
+        # C. Map the 'Facility' (Combine Sheds 1, 4, 6 into 'Commercial' if Account is Commercial)
+        df_club_long['Facility'] = df_club_long.apply(
+            lambda x: 'Commercial' if str(x['Account']).strip() == 'Commercial' else str(x['Location']).strip(), axis=1
+        )
+        
+        # D. Aggregate the Volumes
+        df_club = df_club_long.groupby(['Billing Head', 'Facility'], as_index=False)['Internal Qty'].sum()
+        
+        # E. Calculate Internal Amount using Contract Rates
+        RATE_MAP = {
+            "Remaining CBM {less(Levis, Removal & Pallets cargo)}": 92,
+            "Total Levis OB CBM": 46,
+            "Levis IB (Without Conveyor)": 46,
+            "Levis IB Conveyor CBM(by Bahadur)": 71,
+            "CY Cross Stuffing": 46,
+            "Commercial, LCL, TPP, Cargo Removal": 92,
+            "CARGO SHIFTING + SETTING CBM": 46,
+            "Sorting Charges (Per Carton)": 2,
+            "Sorting Charges LEVI'S (Per Carton)": 1,
+            "Sunday Working": 46,
+            "Hanging Cargo Charges": 1,
+            "Labelling/Stickers Charges": 2,
+            "CARTONS CHANGE": 10
+        }
+        
+        df_club['Internal Rate'] = df_club['Billing Head'].map(RATE_MAP).fillna(0)
+        df_club['Internal Amount'] = df_club['Internal Qty'] * df_club['Internal Rate']
+
         # 2. Reconcile (Merge)
         df_recon = pd.merge(df_club, df_vendor, on=['Billing Head', 'Facility'], how='outer').fillna(0)
         
@@ -68,7 +103,7 @@ if club_file and vendor_file and template_file:
             int_qty = float(row['Internal Qty'])
             ven_qty = float(row['Vendor Qty'])
 
-            # Handle charges that don't have monetary amounts (like CBM tracking)
+            # Handle charges that don't have monetary amounts (like pure CBM tracking)
             if int_amt == 0 and ven_amt == 0:
                 if ven_qty > int_qty:
                     return pd.Series([int_qty, int_amt, "Vendor Overbilled (Vol) – Adjusted to tracker"])
@@ -77,7 +112,7 @@ if club_file and vendor_file and template_file:
                 else:
                     return pd.Series([ven_qty, ven_amt, "Proceed with Vendor Billed"])
 
-            # Core Financial Audit Logic
+            # Core Financial Audit Logic (Always protect the company's money)
             if ven_amt > int_amt:
                 return pd.Series([int_qty, int_amt, "Vendor Overbilled – Adjusted as per tracker volume"])
             elif ven_amt < int_amt:
@@ -100,6 +135,7 @@ if club_file and vendor_file and template_file:
             'Approved Qty', 'Payable Amount', 'Remarks'
         ]
         
+        # Display the interactive dataframe
         st.dataframe(df_recon[display_cols], use_container_width=True)
         
         # Financial Summary metrics
@@ -111,7 +147,7 @@ if club_file and vendor_file and template_file:
                     delta_color="inverse")
         
     except KeyError as e:
-        st.error(f"Column mismatch error: Please ensure your CSVs have 'Billing Head', 'Facility', 'Internal Amount', and 'Vendor Amount'. Missing: {e}")
+        st.error(f"Transformation Error: Please ensure your files are correct. Missing column: {e}")
     
     st.divider()
     
