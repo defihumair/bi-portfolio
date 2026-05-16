@@ -6,7 +6,7 @@ import datetime
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Reconciliation Portal", layout="wide")
-st.title("📦 Logistics Billing Reconciliation Portal")
+st.title("Bahadur Billing Reconciliation & Invoice Generator")
 st.markdown("Upload your weekly files below to automatically reconcile, audit, and generate the payable invoice.")
 
 # --- INVOICE DETAILS ---
@@ -119,7 +119,7 @@ if club_file and vendor_file and template_file:
         bh_totals['Manager Override'] = "System Default"
 
         # --- 3. MANAGER AUDIT & OVERRIDE UI ---
-        st.subheader("🔎 3. Manager Audit & Overrides")
+        st.subheader("3. Manager Audit & Overrides")
         st.info("Review the System's automatic recommendations below. If needed, use the dropdown in the 'Manager Override' column to force a specific adjustment.")
         
         edited_totals = st.data_editor(
@@ -181,7 +181,7 @@ if club_file and vendor_file and template_file:
         df_recon[['Approved Qty', 'Payable Amount', 'Remarks']] = df_recon.apply(apply_final_decision, axis=1)
         
         # --- 4. DASHBOARD TABULAR RECONSTRUCTION ---
-        st.subheader("📊 4. Final Approved Dashboard")
+        st.subheader("4. Final Approved Dashboard")
         
         facilities = ['Shed-1', 'Shed-4', 'Shed-6', 'Commercial']
         billing_heads = df_recon['Billing Head'].unique()
@@ -238,7 +238,7 @@ if club_file and vendor_file and template_file:
     st.divider()
     
     # --- 5. FINALIZE & GENERATE ---
-    st.subheader("⚙️ 5. Finalize & Generate Excel")
+    st.subheader("5. Finalize & Generate Excel")
     
     if st.button("APPROVE & GENERATE PAYABLE INVOICE", type="primary"):
         with st.spinner("Injecting audited data into Excel Template..."):
@@ -289,7 +289,7 @@ if club_file and vendor_file and template_file:
             wb.save(virtual_workbook)
             virtual_workbook.seek(0)
             
-            st.success("🎉 Invoice Generated Successfully with Manager Overrides applied!")
+            st.success("Invoice Generated Successfully with Manager Overrides applied!")
             
             st.download_button(
                 label="⬇️ DOWNLOAD FINAL AUDITED INVOICE",
