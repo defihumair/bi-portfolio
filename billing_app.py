@@ -122,7 +122,6 @@ if club_file and vendor_file and template_file:
         st.subheader("🔎 3. Manager Audit & Overrides")
         st.info("Review the System's automatic recommendations below. If needed, use the dropdown in the 'Manager Override' column to force a specific adjustment.")
         
-        # Interactive Editor
         edited_totals = st.data_editor(
             bh_totals[['Billing Head', 'System Recommendation', 'Manager Override']],
             column_config={
@@ -142,28 +141,42 @@ if club_file and vendor_file and template_file:
             use_container_width=True
         )
 
-        # --- H. APPLY FINAL APPROVED RULES ---
+        # --- H. APPLY FINAL APPROVED RULES & SMART REMARKS ---
         df_recon = pd.merge(df_recon, edited_totals[['Billing Head', 'System Recommendation', 'Manager Override']], on='Billing Head')
 
         def apply_final_decision(row):
             override = row['Manager Override']
             rec = row['System Recommendation']
             
-            # Decide which rule is active
-            active_rule = rec if override == "System Default" else f"MANUAL OVERRIDE: {override}"
-
             int_qty = float(row['Internal Qty'])
             int_amt = float(row['Internal Amount'])
             ven_qty = float(row['Vendor Qty'])
             ven_amt = float(row['Vendor Amount'])
 
-            # Apply the active rule logic
-            if "tracker" in active_rule.lower() or "club" in active_rule.lower():
-                return pd.Series([int_qty, int_amt, active_rule])
-            elif "vendor" in active_rule.lower() or "proceed" in active_rule.lower():
-                return pd.Series([ven_qty, ven_amt, active_rule])
+            # Determine Smart Remarks and Active Logic
+            if override == "System Default":
+                final_remark = rec
+                use_tracker = "tracker" in rec.lower()
+                
+            elif override == "Force Vendor Data (Invoice)":
+                if "Overbilled" in rec:
+                    final_remark = "Vendor Overbilled – Adjusted as per vendor volumes"
+                else:
+                    final_remark = "MANUAL OVERRIDE: Adjusted as per vendor volumes"
+                use_tracker = False
+                
+            elif override == "Force Club Data (Tracker)":
+                if "Underbilled" in rec:
+                    final_remark = "Vendor Underbilled – Adjusted as per tracker volume"
+                else:
+                    final_remark = "MANUAL OVERRIDE: Adjusted as per tracker volume"
+                use_tracker = True
+
+            # Return the correct set of numbers based on the decision
+            if use_tracker:
+                return pd.Series([int_qty, int_amt, final_remark])
             else:
-                return pd.Series([ven_qty, ven_amt, active_rule])
+                return pd.Series([ven_qty, ven_amt, final_remark])
 
         df_recon[['Approved Qty', 'Payable Amount', 'Remarks']] = df_recon.apply(apply_final_decision, axis=1)
         
