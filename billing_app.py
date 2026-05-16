@@ -195,7 +195,7 @@ if club_file and vendor_file and template_file:
     st.divider()
     
     # --- HUMAN IN THE LOOP: APPROVAL ---
-    st.subheader("⚙️ 3. Finalize & Generate")
+    st.subheader("3. Finalize & Generate")
     
     if st.button("APPROVE & GENERATE PAYABLE INVOICE", type="primary"):
         with st.spinner("Injecting audited data into Excel Template..."):
