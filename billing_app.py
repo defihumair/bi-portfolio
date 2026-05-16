@@ -6,7 +6,7 @@ import datetime
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Reconciliation Portal", layout="wide")
-st.title("Bahadur Billing Reconciliation & Invoice Generator")
+st.title("📦 Logistics Billing Reconciliation Portal")
 st.markdown("Upload your weekly files below to automatically reconcile, audit, and generate the payable invoice.")
 
 # --- INVOICE DETAILS ---
@@ -92,8 +92,7 @@ if club_file and vendor_file and template_file:
         df_recon['Volume Variance'] = df_recon['Internal Qty'] - df_recon['Vendor Qty']
         df_recon['Amount Variance'] = df_recon['Internal Amount'] - df_recon['Vendor Amount']
         
-        # --- G. MACRO BUSINESS RULES ENGINE (Line Item Level Audit) ---
-        # 1. First, calculate the GRAND TOTALS for each Billing Head
+        # --- G. SYSTEM RECOMMENDATION ENGINE (Macro Level) ---
         bh_totals = df_recon.groupby('Billing Head').agg(
             Total_Int_Amt=('Internal Amount', 'sum'),
             Total_Ven_Amt=('Vendor Amount', 'sum'),
@@ -101,44 +100,75 @@ if club_file and vendor_file and template_file:
             Total_Ven_Qty=('Vendor Qty', 'sum')
         ).reset_index()
 
-        # 2. Merge these totals back into our main dataset so we can evaluate them
-        df_recon = pd.merge(df_recon, bh_totals, on='Billing Head')
-
-        # 3. Apply the rule based on the GRAND TOTAL, not the individual shed
-        def apply_audit_rules(row):
-            # Evaluate using the Line Item Totals
+        def get_system_recommendation(row):
             total_int_amt = round(float(row['Total_Int_Amt']), 2)
             total_ven_amt = round(float(row['Total_Ven_Amt']), 2)
             total_int_qty = float(row['Total_Int_Qty'])
             total_ven_qty = float(row['Total_Ven_Qty'])
 
-            # Apply using the Shed-Specific Data
-            int_amt = float(row['Internal Amount'])
-            ven_amt = float(row['Vendor Amount'])
-            int_qty = float(row['Internal Qty'])
-            ven_qty = float(row['Vendor Qty'])
-
-            # Handle 0 Rate (Volume Tracking Only)
             if total_int_amt == 0 and total_ven_amt == 0:
-                if total_ven_qty > total_int_qty:
-                    return pd.Series([int_qty, int_amt, "Vendor Overbilled (Vol) – Adjusted to tracker"])
-                elif total_ven_qty < total_int_qty:
-                    return pd.Series([ven_qty, ven_amt, "Vendor Underbilled (Vol) – Adjusted to vendor"])
-                else:
-                    return pd.Series([ven_qty, ven_amt, "Proceed with Vendor Billed"])
+                if total_ven_qty > total_int_qty: return "Vendor Overbilled (Vol) – Adjusted to tracker"
+                elif total_ven_qty < total_int_qty: return "Vendor Underbilled (Vol) – Adjusted to vendor"
+                else: return "Proceed with Vendor Billed"
 
-            # Core Financial Audit
-            if total_ven_amt > total_int_amt:
-                return pd.Series([int_qty, int_amt, "Vendor Overbilled – Adjusted as per tracker volume"])
-            elif total_ven_amt < total_int_amt:
-                return pd.Series([ven_qty, ven_amt, "Vendor Underbilled – Adjusted as per vendor volumes"])
-            else:
-                return pd.Series([ven_qty, ven_amt, "Proceed with Vendor Billed"])
+            if total_ven_amt > total_int_amt: return "Vendor Overbilled – Adjusted as per tracker volume"
+            elif total_ven_amt < total_int_amt: return "Vendor Underbilled – Adjusted as per vendor volumes"
+            else: return "Proceed with Vendor Billed"
 
-        df_recon[['Approved Qty', 'Payable Amount', 'Remarks']] = df_recon.apply(apply_audit_rules, axis=1)
+        bh_totals['System Recommendation'] = bh_totals.apply(get_system_recommendation, axis=1)
+        bh_totals['Manager Override'] = "System Default"
+
+        # --- 3. MANAGER AUDIT & OVERRIDE UI ---
+        st.subheader("🔎 3. Manager Audit & Overrides")
+        st.info("Review the System's automatic recommendations below. If needed, use the dropdown in the 'Manager Override' column to force a specific adjustment.")
         
-        # --- 3. DASHBOARD TABULAR RECONSTRUCTION ---
-        st.subheader("📊 Recon & Audit Dashboard")
+        # Interactive Editor
+        edited_totals = st.data_editor(
+            bh_totals[['Billing Head', 'System Recommendation', 'Manager Override']],
+            column_config={
+                "Manager Override": st.column_config.SelectboxColumn(
+                    "Manager Override",
+                    help="Select an option to override the System Recommendation.",
+                    options=[
+                        "System Default",
+                        "Force Club Data (Tracker)",
+                        "Force Vendor Data (Invoice)"
+                    ],
+                    required=True
+                )
+            },
+            disabled=["Billing Head", "System Recommendation"],
+            hide_index=True,
+            use_container_width=True
+        )
+
+        # --- H. APPLY FINAL APPROVED RULES ---
+        df_recon = pd.merge(df_recon, edited_totals[['Billing Head', 'System Recommendation', 'Manager Override']], on='Billing Head')
+
+        def apply_final_decision(row):
+            override = row['Manager Override']
+            rec = row['System Recommendation']
+            
+            # Decide which rule is active
+            active_rule = rec if override == "System Default" else f"MANUAL OVERRIDE: {override}"
+
+            int_qty = float(row['Internal Qty'])
+            int_amt = float(row['Internal Amount'])
+            ven_qty = float(row['Vendor Qty'])
+            ven_amt = float(row['Vendor Amount'])
+
+            # Apply the active rule logic
+            if "tracker" in active_rule.lower() or "club" in active_rule.lower():
+                return pd.Series([int_qty, int_amt, active_rule])
+            elif "vendor" in active_rule.lower() or "proceed" in active_rule.lower():
+                return pd.Series([ven_qty, ven_amt, active_rule])
+            else:
+                return pd.Series([ven_qty, ven_amt, active_rule])
+
+        df_recon[['Approved Qty', 'Payable Amount', 'Remarks']] = df_recon.apply(apply_final_decision, axis=1)
+        
+        # --- 4. DASHBOARD TABULAR RECONSTRUCTION ---
+        st.subheader("📊 4. Final Approved Dashboard")
         
         facilities = ['Shed-1', 'Shed-4', 'Shed-6', 'Commercial']
         billing_heads = df_recon['Billing Head'].unique()
@@ -173,7 +203,7 @@ if club_file and vendor_file and template_file:
             row_data[('Variance Analysis', 'Amount Variance')] = bh_data['Amount Variance'].sum()
             row_data[('Variance Analysis', 'Approved Volume')] = bh_data['Approved Qty'].sum()
             row_data[('Variance Analysis', 'Payable Amount')] = bh_data['Payable Amount'].sum()
-            row_data[('Variance Analysis', 'Remarks')] = bh_data['Remarks'].iloc[0] # All sheds share the exact same remark now!
+            row_data[('Variance Analysis', 'Remarks')] = bh_data['Remarks'].iloc[0] 
             
             display_rows.append(row_data)
 
@@ -194,8 +224,8 @@ if club_file and vendor_file and template_file:
     
     st.divider()
     
-    # --- HUMAN IN THE LOOP: APPROVAL ---
-    st.subheader("3. Finalize & Generate")
+    # --- 5. FINALIZE & GENERATE ---
+    st.subheader("⚙️ 5. Finalize & Generate Excel")
     
     if st.button("APPROVE & GENERATE PAYABLE INVOICE", type="primary"):
         with st.spinner("Injecting audited data into Excel Template..."):
@@ -246,7 +276,7 @@ if club_file and vendor_file and template_file:
             wb.save(virtual_workbook)
             virtual_workbook.seek(0)
             
-            st.success("Invoice Generated Successfully with Audited Adjustments!")
+            st.success("🎉 Invoice Generated Successfully with Manager Overrides applied!")
             
             st.download_button(
                 label="⬇️ DOWNLOAD FINAL AUDITED INVOICE",
