@@ -10,7 +10,7 @@ st.title("Bahadur Billing Reconciliation & Invoice Generator")
 st.markdown("Upload your weekly files below to automatically reconcile, audit, and generate the payable invoice.")
 
 # --- INVOICE DETAILS ---
-st.subheader("📝 1. Invoice Details")
+st.subheader("1. Invoice Details")
 col_date, col_week, col_year = st.columns(3)
 
 with col_date:
@@ -28,7 +28,7 @@ invoice_suffix = f"{week_num}{str(year_num)[-2:]}"
 st.divider()
 
 # --- UPLOAD ZONE ---
-st.subheader("📂 2. Upload Files")
+st.subheader("2. Upload Files")
 col1, col2, col3 = st.columns(3)
 with col1:
     club_file = st.file_uploader("1. Upload Club Data (CSV)", type=['csv'])
