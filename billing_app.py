@@ -6,7 +6,7 @@ import datetime
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Reconciliation Portal", layout="wide")
-st.title("📦 Logistics Billing Reconciliation Portal")
+st.title("Bahadur Billing Reconciliation & Invoice Generator")
 st.markdown("Upload your weekly files below to automatically reconcile, audit, and generate the payable invoice.")
 
 # --- INVOICE DETAILS ---
@@ -246,7 +246,7 @@ if club_file and vendor_file and template_file:
             wb.save(virtual_workbook)
             virtual_workbook.seek(0)
             
-            st.success("🎉 Invoice Generated Successfully with Audited Adjustments!")
+            st.success("Invoice Generated Successfully with Audited Adjustments!")
             
             st.download_button(
                 label="⬇️ DOWNLOAD FINAL AUDITED INVOICE",
